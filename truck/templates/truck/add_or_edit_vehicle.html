@@ -1,0 +1,54 @@
+{% extends "truck/base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Add/Edit Vehicle</h2>
+    <form method="post" class="needs-validation" novalidate>
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div id="formset-container">
+            <!-- Kompartimentet ekzistuese këtu -->
+            {{ formset.management_form }}
+            {% for form in formset %}
+            <div class="form-group">
+                {{ form.as_p }}
+            </div>
+            {% endfor %}
+        </div>
+        <div class="form-group">
+            <button type="button" id="add-more" class="btn btn-info">Add More</button>
+        </div>
+        <div class="form-group mt-3">
+            <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="text/javascript">
+$(document).ready(function () {
+    var totalForms = $('#id_form-TOTAL_FORMS');
+    var formsetContainer = $('#formset-container');
+    var addMoreButton = $('#add-more');
+
+    addMoreButton.click(function () {
+        var formIndex = formsetContainer.children().length;
+        var newForm = `
+            <div class="form-group">
+                <label for="id_form-${formIndex}-capacity">Capacity:</label>
+                <input type="number" name="form-${formIndex}-capacity" id="id_form-${formIndex}-capacity" class="form-control" step="any" required>
+                <input type="hidden" name="form-${formIndex}-id" id="id_form-${formIndex}-id">
+                <div class="form-check">
+                    <input type="checkbox" name="form-${formIndex}-DELETE" id="id_form-${formIndex}-DELETE" class="form-check-input">
+                    <label class="form-check-label" for="id_form-${formIndex}-DELETE">Delete</label>
+                </div>
+            </div>
+        `;
+
+        totalForms.val(parseInt(totalForms.val()) + 1);
+        formsetContainer.append(newForm);
+    });
+});
+</script>
+{% endblock %}

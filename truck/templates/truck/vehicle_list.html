@@ -1,0 +1,32 @@
+{% extends "truck/base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>List of Vehicles</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">License Plate</th>
+                <th scope="col">Chassis Number</th>
+                <th scope="col">Capacity</th>
+                <th scope="col">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for vehicle in vehicles %}
+            <tr>
+                <th scope="row">{{ forloop.counter }}</th>
+                <td>{{ vehicle.license_plate }}</td>
+                <td>{{ vehicle.chassis_number }}</td>
+                <td>{{ vehicle.capacity }} Liters</td>
+                <td>
+                    <a href="{% url 'truck:edit_vehicle' vehicle.id %}" class="btn btn-primary btn-sm">Edit</a>
+                    <a href="{% url 'truck:delete_vehicle' vehicle.id %}" class="btn btn-danger btn-sm">Delete</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

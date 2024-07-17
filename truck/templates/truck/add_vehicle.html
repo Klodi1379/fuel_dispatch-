@@ -1,0 +1,57 @@
+{% extends "truck/base.html" %}
+
+{% load static %}
+{% load form_tags %} <!-- Nëse keni krijuar templatetag-in 'add_class' -->
+{% block title %}Add Vehicle{% endblock title %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Add a New Vehicle</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            {{ form.license_plate.label_tag }}
+                            {{ form.license_plate|add_class:"form-control" }} <!-- Aplikon klasën form-control të Bootstrap -->
+                        </div>
+                        <div class="mb-3">
+                            {{ form.chassis_number.label_tag }}
+                            {{ form.chassis_number|add_class:"form-control" }}
+                        </div>
+                        <!-- Përsëritni për fushat e tjera -->
+                        <div class="mb-3">
+                            {{ form.compartment_number.label_tag }}
+                            {{ form.compartment_number|add_class:"form-control" }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.separated_cab.label }}
+                            {{ form.separated_cab|add_class:"form-check-input" }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.has_pump.label }}
+                            {{ form.has_pump|add_class:"form-check-input" }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.hose_length.label_tag }}
+                            {{ form.hose_length|add_class:"form-control" }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.free_flow_unloading.label }}
+                            {{ form.free_flow_unloading|add_class:"form-check-input" }}
+                        </div>
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                        
+                        <a href="{% url 'truck:vehicle_list' %}" class="btn btn-secondary">Cancel</a>
+                    </form>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
