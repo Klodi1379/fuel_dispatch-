@@ -1,13 +1,30 @@
-from django.contrib import admin
+from django import forms
+from django.forms import inlineformset_factory
 from .models import FuelStation, FuelTank
 
-class FuelTankInline(admin.TabularInline):
-    model = FuelTank
-    extra = 1
-    fields = ['fuel_type', 'capacity']  # Fushat nga FuelTankForm
+class FuelStationForm(forms.ModelForm):
+    class Meta:
+        model = FuelStation
+        fields = ['name', 'address', 'location']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'address': forms.TextInput(attrs={'class': 'form-control'}),
+            'location': forms.TextInput(attrs={'class': 'form-control'}),
+        }
 
-class FuelStationAdmin(admin.ModelAdmin):
-    inlines = [FuelTankInline]
-    fields = ['name', 'address', 'location']  # Fushat nga FuelStationForm
+class FuelTankForm(forms.ModelForm):
+    class Meta:
+        model = FuelTank
+        fields = ['fuel_type', 'capacity']
+        widgets = {
+            'fuel_type': forms.TextInput(attrs={'class': 'form-control'}),
+            'capacity': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
 
-admin.site.register(FuelStation, FuelStationAdmin)
+# Formset për menaxhimin e rezervuarëve të lidhur me një stacion
+FuelTankFormset = inlineformset_factory(
+    FuelStation, FuelTank, 
+    form=FuelTankForm,
+    extra=1, 
+    can_delete=True
+)

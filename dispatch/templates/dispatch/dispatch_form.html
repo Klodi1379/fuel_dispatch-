@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h2>{% if dispatch %}Edit Dispatch{% else %}New Dispatch{% endif %}</h2>
+        </div>
+        <div class="card-body">
+            <form method="post" novalidate>
+                {% csrf_token %}
+                
+                <!-- Main Dispatch Form -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.vehicle.id_for_label }}" class="form-label">Vehicle</label>
+                            {{ form.vehicle }}
+                            {% if form.vehicle.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.vehicle.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.fuel_station.id_for_label }}" class="form-label">Fuel Station</label>
+                            {{ form.fuel_station }}
+                            {% if form.fuel_station.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.fuel_station.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.driver.id_for_label }}" class="form-label">Driver</label>
+                            {{ form.driver }}
+                            {% if form.driver.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.driver.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.dispatch_date.id_for_label }}" class="form-label">Dispatch Date</label>
+                            {{ form.dispatch_date }}
+                            {% if form.dispatch_date.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.dispatch_date.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="mb-3">
+                            <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                            {{ form.notes }}
+                            {% if form.notes.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.notes.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Load Formset -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4>Load Details</h4>
+                    </div>
+                    <div class="card-body">
+                        {{ formset.management_form }}
+                        <div id="formset-container">
+                            {% for load_form in formset %}
+                            <div class="load-form mb-3 p-3 border rounded">
+                                <div class="row">
+                                    {% for field in load_form.visible_fields %}
+                                    <div class="col-md-4 mb-2">
+                                        <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                                        {{ field }}
+                                        {% if field.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ field.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    {% endfor %}
+                                    {% for hidden in load_form.hidden_fields %}
+                                        {{ hidden }}
+                                    {% endfor %}
+                                </div>
+                                {% if formset.can_delete %}
+                                <div class="text-end mt-2">
+                                    <button type="button" class="btn btn-danger btn-sm remove-form">Remove</button>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button type="button" class="btn btn-secondary" id="add-more-loads">Add More Loads</button>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'dispatch:dispatch_list' %}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save Dispatch</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const formsetContainer = document.getElementById('formset-container');
+    const addButton = document.getElementById('add-more-loads');
+    const totalFormsInput = document.getElementById('id_load_set-TOTAL_FORMS');
+    
+    // Function to update form indices
+    function updateElementIndex(el, prefix, ndx) {
+        const pattern = new RegExp('(' + prefix + '-\\d+)');
+        const replacement = prefix + '-' + ndx;
+        if (el.id) el.id = el.id.replace(pattern, replacement);
+        if (el.name) el.name = el.name.replace(pattern, replacement);
+        if (el.for) el.for = el.for.replace(pattern, replacement);
+    }
+
+    // Add new form
+    addButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        const formCount = formsetContainer.children.length;
+        const newForm = formsetContainer.children[0].cloneNode(true);
+        
+        // Clear the values
+        newForm.querySelectorAll('input, select, textarea').forEach(input => {
+            input.value = '';
+            updateElementIndex(input, 'load_set', formCount);
+        });
+
+        formsetContainer.appendChild(newForm);
+        totalFormsInput.value = formCount + 1;
+    });
+
+    // Remove form
+    formsetContainer.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-form')) {
+            if (formsetContainer.children.length > 1) {
+                e.target.closest('.load-form').remove();
+                totalFormsInput.value = formsetContainer.children.length;
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

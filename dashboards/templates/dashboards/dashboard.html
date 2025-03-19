@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Dashboard</h1>
+    <div class="row">
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-primary text-white mb-4">
+                <div class="card-body">
+                    <h2>{{ total_vehicles }}</h2>
+                    <p>Kamionë Aktivë</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-success text-white mb-4">
+                <div class="card-body">
+                    <h2>{{ total_stations }}</h2>
+                    <p>Stacione Karburanti</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-warning text-white mb-4">
+                <div class="card-body">
+                    <h2>{{ total_dispatches }}</h2>
+                    <p>Dispečë Totale</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-xl-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-chart-area me-1"></i>
+                    Dispečët e Sotëm ({{ today|date:"d M Y" }})
+                </div>
+                <div class="card-body">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Kamioni</th>
+                                <th>Stacioni</th>
+                                <th>Statusi</th>
+                                <th>Veprime</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for dispatch in today_dispatches %}
+                            <tr>
+                                <td>{{ dispatch.id }}</td>
+                                <td>{{ dispatch.vehicle.license_plate }}</td>
+                                <td>{{ dispatch.station.name }}</td>  <!-- Fix: Shtohet kolona e stacionit -->
+                                <td>{{ dispatch.get_status_display }}</td>
+                                <td>
+                                    <a href="{% url 'dispatch:dispatch_detail' dispatch.id %}" class="btn btn-sm btn-outline-primary">Shiko</a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center">Nuk ka dispečë për sot</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-wrench me-1"></i>
+                    Kamionët që Kanë Nevojë për Mirëmbajtje
+                </div>
+                <div class="card-body">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Targë</th>
+                                <th>Data e Fundit</th>
+                                <th>Data e Ardhshme</th>
+                                <th>Veprime</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for vehicle in maintenance_vehicles %}
+                            <tr>
+                                <td>{{ vehicle.license_plate }}</td>
+                                <td>{{ vehicle.last_maintenance_date|date:"d M Y" }}</td>
+                                <td>{{ vehicle.next_maintenance_date|date:"d M Y" }}</td>
+                                <td>
+                                    <a href="{% url 'truck:edit_vehicle' vehicle.id %}" class="btn btn-sm btn-outline-warning">Përditëso</a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center">Nuk ka kamionë që kanë nevojë për mirëmbajtje</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fix: Vendosja e div-it brenda block content -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-gas-pump me-1"></i>
+                    Stacionet e Karburantit
+                </div>
+                <div class="card-body">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Emri</th>
+                                <th>Adresa</th>
+                                <th>Lokacioni</th>
+                                <th>Rezervuarët</th>
+                                <th>Veprime</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for station in fuel_stations %}
+                            <tr>
+                                <td>{{ station.name }}</td>
+                                <td>{{ station.address }}</td>
+                                <td>{{ station.location }}</td>
+                                <td>
+                                    {% for tank in station.fuel_tanks.all %}
+                                    {{ tank.fuel_type }} ({{ tank.capacity }}L){% if not forloop.last %}, {% endif %}
+                                    {% endfor %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'fuelstation:fuelstation_detail' station.id %}" class="btn btn-sm btn-outline-primary">Shiko</a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center">Nuk ka stacione karburanti të regjistruara</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
