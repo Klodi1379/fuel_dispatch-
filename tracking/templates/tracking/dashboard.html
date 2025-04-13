@@ -1,0 +1,598 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Real-Time Vehicle Tracking{% endblock %}
+
+{% block extra_head %}
+<!-- Leaflet CSS and JS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Font Awesome icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- Moment.js for time handling -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+<style>
+    .tracking-container {
+        background-color: #f8f9fa;
+        padding: 1.5rem;
+    }
+
+    .card {
+        border-radius: 0.5rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        border: none;
+        margin-bottom: 1.5rem;
+    }
+
+    .card-header {
+        background-color: white;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        padding: 1rem 1.25rem;
+    }
+
+    #map-container {
+        height: 600px;
+        width: 100%;
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+
+    #vehicle-map {
+        height: 100%;
+        width: 100%;
+    }
+
+    .vehicle-list {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+
+    .vehicle-item {
+        padding: 0.75rem;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .vehicle-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    .vehicle-item.active {
+        background-color: #e9f5fe;
+        border-left: 3px solid #0d6efd;
+    }
+
+    .vehicle-status {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 5px;
+    }
+
+    .status-online {
+        background-color: #28a745;
+    }
+
+    .status-idle {
+        background-color: #ffc107;
+    }
+
+    .status-offline {
+        background-color: #dc3545;
+    }
+
+    .vehicle-info {
+        padding: 1rem;
+    }
+
+    .info-label {
+        font-weight: 600;
+        color: #6c757d;
+    }
+
+    .route-info {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .controls {
+        margin-bottom: 1rem;
+    }
+
+    .refresh-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 1000;
+        background-color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 8px 12px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .vehicle-marker-icon {
+        text-align: center;
+    }
+
+    .vehicle-marker-icon i {
+        font-size: 24px;
+        color: #0d6efd;
+    }
+
+    .vehicle-marker-label {
+        font-size: 10px;
+        font-weight: bold;
+        margin-top: -5px;
+        text-shadow: 1px 1px 1px white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="tracking-container">
+    <!-- Dashboard Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Real-Time Vehicle Tracking</h1>
+            <p class="text-muted">Monitor your fleet's location and status in real-time</p>
+        </div>
+        <div>
+            <button id="refresh-data" class="btn btn-primary btn-sm">
+                <i class="fas fa-sync-alt me-1"></i>Refresh Data
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Vehicle List -->
+        <div class="col-lg-3">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="m-0 font-weight-bold text-primary">Vehicles</h5>
+                    <span class="badge bg-primary" id="vehicle-count">{{ vehicles|length }}</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="vehicle-list" id="vehicle-list">
+                        {% for vehicle in vehicles %}
+                        <div class="vehicle-item {% if selected_vehicle_id == vehicle.id %}active{% endif %}" data-vehicle-id="{{ vehicle.id }}">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="vehicle-status status-offline" id="status-{{ vehicle.id }}"></span>
+                                    <strong>{{ vehicle.license_plate }}</strong>
+                                </div>
+                                <small class="text-muted" id="last-update-{{ vehicle.id }}">Unknown</small>
+                            </div>
+                            <div class="mt-1 small text-muted">
+                                <span id="location-{{ vehicle.id }}">Location: Unknown</span>
+                            </div>
+                            <div class="mt-1 small">
+                                <span id="speed-{{ vehicle.id }}">Speed: 0 km/h</span>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="p-3 text-center">
+                            <p>No active vehicles found</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map -->
+        <div class="col-lg-9">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="m-0 font-weight-bold text-primary">Live Map</h5>
+                </div>
+                <div class="card-body p-0 position-relative">
+                    <button id="center-map" class="refresh-btn">
+                        <i class="fas fa-crosshairs"></i>
+                    </button>
+                    <div id="map-container">
+                        <div id="vehicle-map"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vehicle Details -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="m-0 font-weight-bold text-primary">Selected Vehicle Details</h5>
+                </div>
+                <div class="card-body">
+                    <div id="vehicle-details">
+                        <div class="text-center py-5">
+                            <i class="fas fa-truck-moving fa-3x text-muted mb-3"></i>
+                            <p>Select a vehicle to view details</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialize map
+    const map = L.map('vehicle-map').setView([41.3275, 19.8187], 8); // Center on Albania
+
+    // Check if a specific vehicle is selected
+    const selectedVehicleId = {{ selected_vehicle_id|default:'null' }};
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+    }).addTo(map);
+
+    // Vehicle markers and data
+    const vehicles = {};
+    const markers = {};
+    let selectedVehicleId = null;
+
+    // Sample data for demonstration (will be replaced with real API data)
+    const sampleData = [
+        {
+            id: 1,
+            license_plate: "AA001BB",
+            latitude: 41.3275,
+            longitude: 19.8187,
+            speed: 65,
+            timestamp: new Date().toISOString(),
+            status: "online",
+            location: "Tirana, Albania"
+        },
+        {
+            id: 2,
+            license_plate: "AA002BB",
+            latitude: 41.3233,
+            longitude: 19.4542,
+            speed: 0,
+            timestamp: new Date().toISOString(),
+            status: "idle",
+            location: "Durres, Albania"
+        },
+        {
+            id: 3,
+            license_plate: "AA003BB",
+            latitude: 40.7075,
+            longitude: 19.9533,
+            speed: 45,
+            timestamp: new Date().toISOString(),
+            status: "online",
+            location: "Fier, Albania"
+        },
+        {
+            id: 4,
+            license_plate: "AA004BB",
+            latitude: 42.0692,
+            longitude: 19.5033,
+            speed: 72,
+            timestamp: new Date().toISOString(),
+            status: "online",
+            location: "Shkoder, Albania"
+        },
+        {
+            id: 5,
+            license_plate: "AA005BB",
+            latitude: 41.1167,
+            longitude: 20.0833,
+            speed: 55,
+            timestamp: new Date().toISOString(),
+            status: "online",
+            location: "Elbasan, Albania"
+        },
+        {
+            id: 6,
+            license_plate: "AA006BB",
+            latitude: 40.0800,
+            longitude: 20.1300,
+            speed: 0,
+            timestamp: new Date().toISOString(),
+            status: "idle",
+            location: "Gjirokaster, Albania"
+        },
+        {
+            id: 7,
+            license_plate: "AA007BB",
+            latitude: 41.7700,
+            longitude: 19.6400,
+            speed: 35,
+            timestamp: new Date().toISOString(),
+            status: "online",
+            location: "Lezhe, Albania"
+        },
+        {
+            id: 8,
+            license_plate: "AA008BB",
+            latitude: 40.7200,
+            longitude: 19.5600,
+            speed: 0,
+            timestamp: new Date(Date.now() - 86400000).toISOString(), // 24 hours ago
+            status: "offline",
+            location: "Vlore, Albania"
+        }
+    ];
+
+    // Create custom icon for vehicles
+    function createVehicleIcon(vehicle) {
+        // Choose icon based on status and speed
+        let iconClass = 'fa-truck';
+        let iconColor = '#0d6efd';
+
+        if (vehicle.status === 'offline') {
+            iconClass = 'fa-truck';
+            iconColor = '#6c757d';
+        } else if (vehicle.speed === 0) {
+            iconClass = 'fa-truck';
+            iconColor = '#ffc107';
+        } else if (vehicle.speed > 60) {
+            iconClass = 'fa-truck-fast';
+            iconColor = '#dc3545';
+        }
+
+        return L.divIcon({
+            html: `
+                <div class="vehicle-marker-icon">
+                    <i class="fas ${iconClass}" style="color: ${iconColor};"></i>
+                    <div class="vehicle-marker-label">${vehicle.license_plate}</div>
+                </div>
+            `,
+            className: 'vehicle-map-icon',
+            iconSize: [40, 40],
+            iconAnchor: [20, 20]
+        });
+    }
+
+    // Update vehicle data in the UI
+    function updateVehicleUI(vehicle) {
+        // Update vehicle list item
+        const statusEl = document.getElementById(`status-${vehicle.id}`);
+        const lastUpdateEl = document.getElementById(`last-update-${vehicle.id}`);
+        const locationEl = document.getElementById(`location-${vehicle.id}`);
+        const speedEl = document.getElementById(`speed-${vehicle.id}`);
+
+        if (statusEl) {
+            statusEl.className = `vehicle-status status-${vehicle.status}`;
+        }
+
+        if (lastUpdateEl) {
+            lastUpdateEl.textContent = moment(vehicle.timestamp).fromNow();
+        }
+
+        if (locationEl) {
+            locationEl.textContent = `Location: ${vehicle.location || 'Unknown'}`;
+        }
+
+        if (speedEl) {
+            speedEl.textContent = `Speed: ${vehicle.speed} km/h`;
+        }
+
+        // Update marker on map
+        if (markers[vehicle.id]) {
+            map.removeLayer(markers[vehicle.id]);
+        }
+
+        const marker = L.marker([vehicle.latitude, vehicle.longitude], {
+            icon: createVehicleIcon(vehicle)
+        }).addTo(map);
+
+        marker.bindPopup(`
+            <div style="width: 200px;">
+                <h6 class="mb-2">${vehicle.license_plate}</h6>
+                <p class="mb-1"><strong>Status:</strong> ${vehicle.status}</p>
+                <p class="mb-1"><strong>Speed:</strong> ${vehicle.speed} km/h</p>
+                <p class="mb-1"><strong>Location:</strong> ${vehicle.location || 'Unknown'}</p>
+                <p class="mb-3"><strong>Last Update:</strong> ${moment(vehicle.timestamp).format('DD/MM/YYYY HH:mm:ss')}</p>
+                <button class="btn btn-sm btn-primary w-100" onclick="selectVehicle(${vehicle.id})">View Details</button>
+            </div>
+        `);
+
+        markers[vehicle.id] = marker;
+        vehicles[vehicle.id] = vehicle;
+
+        // Update selected vehicle details if this is the selected vehicle
+        if (selectedVehicleId === vehicle.id) {
+            updateVehicleDetails(vehicle);
+        }
+    }
+
+    // Update vehicle details panel
+    function updateVehicleDetails(vehicle) {
+        const detailsContainer = document.getElementById('vehicle-details');
+
+        let statusClass = '';
+        let statusText = '';
+
+        if (vehicle.status === 'online') {
+            statusClass = 'text-success';
+            statusText = 'Online';
+        } else if (vehicle.status === 'idle') {
+            statusClass = 'text-warning';
+            statusText = 'Idle';
+        } else {
+            statusClass = 'text-danger';
+            statusText = 'Offline';
+        }
+
+        detailsContainer.innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="vehicle-info">
+                        <h4>${vehicle.license_plate}</h4>
+                        <p class="mb-3 ${statusClass}">
+                            <i class="fas fa-circle me-1"></i> ${statusText}
+                        </p>
+
+                        <div class="row mb-2">
+                            <div class="col-5 info-label">Current Speed:</div>
+                            <div class="col-7">${vehicle.speed} km/h</div>
+                        </div>
+
+                        <div class="row mb-2">
+                            <div class="col-5 info-label">Location:</div>
+                            <div class="col-7">${vehicle.location || 'Unknown'}</div>
+                        </div>
+
+                        <div class="row mb-2">
+                            <div class="col-5 info-label">Coordinates:</div>
+                            <div class="col-7">${vehicle.latitude.toFixed(6)}, ${vehicle.longitude.toFixed(6)}</div>
+                        </div>
+
+                        <div class="row mb-2">
+                            <div class="col-5 info-label">Last Update:</div>
+                            <div class="col-7">${moment(vehicle.timestamp).format('DD/MM/YYYY HH:mm:ss')}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="vehicle-info">
+                        <h5>Current Trip</h5>
+                        <div class="route-info">
+                            <div class="row mb-2">
+                                <div class="col-5 info-label">Origin:</div>
+                                <div class="col-7">Tirana Depot</div>
+                            </div>
+
+                            <div class="row mb-2">
+                                <div class="col-5 info-label">Destination:</div>
+                                <div class="col-7">${vehicle.location || 'Unknown'}</div>
+                            </div>
+
+                            <div class="row mb-2">
+                                <div class="col-5 info-label">Estimated Arrival:</div>
+                                <div class="col-7">${moment().add(Math.floor(Math.random() * 120) + 30, 'minutes').format('HH:mm')}</div>
+                            </div>
+
+                            <div class="row mb-2">
+                                <div class="col-5 info-label">Distance:</div>
+                                <div class="col-7">${Math.floor(Math.random() * 100) + 20} km</div>
+                            </div>
+
+                            <div class="mt-3">
+                                <button class="btn btn-sm btn-outline-primary me-2">
+                                    <i class="fas fa-route me-1"></i> View Route
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-history me-1"></i> History
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Select a vehicle
+    function selectVehicle(vehicleId) {
+        // Remove active class from all vehicle items
+        document.querySelectorAll('.vehicle-item').forEach(item => {
+            item.classList.remove('active');
+        });
+
+        // Add active class to selected vehicle
+        const vehicleItem = document.querySelector(`.vehicle-item[data-vehicle-id="${vehicleId}"]`);
+        if (vehicleItem) {
+            vehicleItem.classList.add('active');
+        }
+
+        selectedVehicleId = vehicleId;
+
+        // Update vehicle details
+        if (vehicles[vehicleId]) {
+            updateVehicleDetails(vehicles[vehicleId]);
+
+            // Center map on selected vehicle
+            if (markers[vehicleId]) {
+                map.setView([vehicles[vehicleId].latitude, vehicles[vehicleId].longitude], 12);
+                markers[vehicleId].openPopup();
+            }
+        }
+    }
+
+    // Fetch vehicle data from API
+    function fetchVehicleData() {
+        // In a real application, this would be an API call
+        // For demonstration, we'll use the sample data
+        sampleData.forEach(vehicle => {
+            // Add some randomness to make it look like real-time updates
+            if (vehicle.status !== 'offline') {
+                // Slightly move the vehicle
+                const latOffset = (Math.random() - 0.5) * 0.01;
+                const lngOffset = (Math.random() - 0.5) * 0.01;
+                vehicle.latitude += latOffset;
+                vehicle.longitude += lngOffset;
+
+                // Update speed
+                if (vehicle.status === 'idle') {
+                    vehicle.speed = 0;
+                } else {
+                    vehicle.speed = Math.floor(Math.random() * 80) + 10;
+                }
+
+                // Update timestamp
+                vehicle.timestamp = new Date().toISOString();
+            }
+
+            updateVehicleUI(vehicle);
+        });
+    }
+
+    // Initialize vehicle list click handlers
+    document.querySelectorAll('.vehicle-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const vehicleId = parseInt(this.getAttribute('data-vehicle-id'));
+            selectVehicle(vehicleId);
+        });
+    });
+
+    // Center map button
+    document.getElementById('center-map').addEventListener('click', function() {
+        const bounds = [];
+        Object.values(vehicles).forEach(vehicle => {
+            if (vehicle.status !== 'offline') {
+                bounds.push([vehicle.latitude, vehicle.longitude]);
+            }
+        });
+
+        if (bounds.length > 0) {
+            map.fitBounds(bounds);
+        } else {
+            map.setView([41.3275, 19.8187], 8); // Default to Albania
+        }
+    });
+
+    // Refresh data button
+    document.getElementById('refresh-data').addEventListener('click', fetchVehicleData);
+
+    // Make selectVehicle function available globally
+    window.selectVehicle = selectVehicle;
+
+    // Initial data fetch
+    fetchVehicleData();
+
+    // If a specific vehicle is selected, focus on it after data is loaded
+    if (selectedVehicleId) {
+        setTimeout(() => {
+            if (vehicles[selectedVehicleId]) {
+                selectVehicle(selectedVehicleId);
+            }
+        }, 500);  // Small delay to ensure data is loaded
+    }
+
+    // Auto-refresh every 30 seconds
+    setInterval(fetchVehicleData, 30000);
+</script>
+{% endblock %}

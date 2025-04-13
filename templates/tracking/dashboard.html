@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block title %}Gjurmimi i Automjeteve{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h1>Gjurmimi i Automjeteve në Kohë Reale</h1>
+    
+    <div class="row mt-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Harta e Gjurmimit</h5>
+                </div>
+                <div class="card-body">
+                    <div id="map" style="height: 500px;"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Automjetet Aktive</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group" id="vehicles-list">
+                        {% for vehicle in vehicles %}
+                        <a href="#" class="list-group-item list-group-item-action" data-vehicle-id="{{ vehicle.id }}">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">{{ vehicle.license_plate }}</h5>
+                                <small class="vehicle-status" data-vehicle-id="{{ vehicle.id }}">Statusi i panjohur</small>
+                            </div>
+                            <p class="mb-1">{{ vehicle.get_vehicle_type_display }}</p>
+                            <small class="vehicle-location" data-vehicle-id="{{ vehicle.id }}">Vendndodhja e panjohur</small>
+                        </a>
+                        {% empty %}
+                        <div class="alert alert-info">Nuk ka automjete aktive për gjurmim.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+
+<script>
+    // Inicializimi i hartës
+    var map = L.map('map').setView([41.3275, 19.8187], 8); // Koordinatat e Tiranës
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+    
+    // Ruaj markerët e automjeteve
+    var vehicleMarkers = {};
+    
+    // Funksioni për përditësimin e vendndodhjes së automjetit
+    function updateVehicleLocation(vehicleId, latitude, longitude, licensePlate) {
+        // Kontrollo nëse markeri ekziston
+        if (vehicleMarkers[vehicleId]) {
+            // Përditëso pozicionin e markerit ekzistues
+            vehicleMarkers[vehicleId].setLatLng([latitude, longitude]);
+        } else {
+            // Krijo një marker të ri
+            vehicleMarkers[vehicleId] = L.marker([latitude, longitude], {
+                title: licensePlate
+            }).addTo(map);
+            
+            // Shto popup me informacion
+            vehicleMarkers[vehicleId].bindPopup(
+                "<b>" + licensePlate + "</b><br>" +
+                "Lat: " + latitude + "<br>" +
+                "Lng: " + longitude
+            );
+        }
+        
+        // Përditëso informacionin në listë
+        $('.vehicle-location[data-vehicle-id="' + vehicleId + '"]').text(
+            "Lat: " + latitude.toFixed(6) + ", Lng: " + longitude.toFixed(6)
+        );
+        $('.vehicle-status[data-vehicle-id="' + vehicleId + '"]').text("Online").addClass("text-success");
+    }
+    
+    // Lidhja me WebSocket për përditësime në kohë reale
+    const vehicleSocket = new WebSocket(
+        'ws://' + window.location.host + '/ws/tracking/'
+    );
+    
+    vehicleSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        
+        if (data.type === 'location_update') {
+            // Merr të dhënat e vendndodhjes
+            const vehicleId = data.vehicle_id;
+            const latitude = parseFloat(data.latitude);
+            const longitude = parseFloat(data.longitude);
+            
+            // Merr targën e automjetit nga lista
+            const licensePlate = $('a[data-vehicle-id="' + vehicleId + '"] h5').text();
+            
+            // Përditëso vendndodhjen në hartë
+            updateVehicleLocation(vehicleId, latitude, longitude, licensePlate);
+        }
+    };
+    
+    vehicleSocket.onclose = function(e) {
+        console.error('Lidhja me WebSocket u mbyll papritur');
+    };
+    
+    // Kur klikohet një automjet në listë, fokusohu tek ai në hartë
+    $('#vehicles-list a').on('click', function(e) {
+        e.preventDefault();
+        const vehicleId = $(this).data('vehicle-id');
+        
+        if (vehicleMarkers[vehicleId]) {
+            map.setView(vehicleMarkers[vehicleId].getLatLng(), 15);
+            vehicleMarkers[vehicleId].openPopup();
+        }
+    });
+    
+    // Merr vendndodhjet e fundit të automjeteve kur faqja ngarkohet
+    $(document).ready(function() {
+        $.ajax({
+            url: '/tracking/api/locations/latest/',
+            method: 'GET',
+            success: function(data) {
+                // Përditëso hartën me vendndodhjet e fundit
+                data.forEach(function(location) {
+                    updateVehicleLocation(
+                        location.vehicle,
+                        parseFloat(location.latitude),
+                        parseFloat(location.longitude),
+                        location.vehicle_license_plate
+                    );
+                });
+                
+                // Përshtat pamjen e hartës për të treguar të gjitha automjetet
+                if (Object.keys(vehicleMarkers).length > 0) {
+                    const bounds = [];
+                    for (const id in vehicleMarkers) {
+                        bounds.push(vehicleMarkers[id].getLatLng());
+                    }
+                    map.fitBounds(L.latLngBounds(bounds), { padding: [50, 50] });
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Gabim gjatë marrjes së vendndodhjeve:', error);
+            }
+        });
+    });
+</script>
+{% endblock %}

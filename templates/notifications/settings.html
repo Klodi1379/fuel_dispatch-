@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}Konfigurimet e Njoftimeve{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Konfigurimet e Njoftimeve</h1>
+        <a href="{% url 'notifications:list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Kthehu te Njoftimet
+        </a>
+    </div>
+    
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <div class="card">
+        <div class="card-header">
+            <h5>Preferencat e Njoftimeve</h5>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Lloji i Njoftimit</th>
+                                <th>Përshkrimi</th>
+                                <th>Aktivizuar</th>
+                                <th>Metoda e Njoftimit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for setting in user_settings %}
+                            <tr>
+                                <td>{{ setting.notification_type.name }}</td>
+                                <td>{{ setting.notification_type.description }}</td>
+                                <td>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="enabled_notifications" 
+                                               value="{{ setting.id }}" id="enable_{{ setting.id }}"
+                                               {% if setting.is_enabled %}checked{% endif %}>
+                                        <label class="form-check-label" for="enable_{{ setting.id }}">
+                                            {% if setting.is_enabled %}Aktivizuar{% else %}Çaktivizuar{% endif %}
+                                        </label>
+                                    </div>
+                                </td>
+                                <td>
+                                    <select class="form-select" name="method_{{ setting.id }}">
+                                        <option value="EMAIL" {% if setting.notification_method == 'EMAIL' %}selected{% endif %}>
+                                            Vetëm Email
+                                        </option>
+                                        <option value="IN_APP" {% if setting.notification_method == 'IN_APP' %}selected{% endif %}>
+                                            Vetëm në Aplikacion
+                                        </option>
+                                        <option value="SMS" {% if setting.notification_method == 'SMS' %}selected{% endif %}>
+                                            Vetëm SMS
+                                        </option>
+                                        <option value="ALL" {% if setting.notification_method == 'ALL' %}selected{% endif %}>
+                                            Të gjitha metodat
+                                        </option>
+                                    </select>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center">Nuk ka lloje njoftimesh të konfiguruara.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">Ruaj Konfigurimet</button>
+                    <a href="{% url 'notifications:list' %}" class="btn btn-secondary ms-2">Anulo</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5>Informacion për Njoftimet</h5>
+        </div>
+        <div class="card-body">
+            <p>Sistemi i njoftimeve ju lejon të merrni informacione të rëndësishme për:</p>
+            <ul>
+                <li><strong>Nivelet e ulëta të karburantit</strong> - Njoftim kur niveli i karburantit në një stacion bie nën 20%</li>
+                <li><strong>Mirëmbajtja e automjeteve</strong> - Njoftim kur një automjet ka nevojë për mirëmbajtje të planifikuar</li>
+                <li><strong>Vonesat në dërgesa</strong> - Njoftim kur një dërgesë është vonuar</li>
+                <li><strong>Ndryshimet e statusit të dërgesave</strong> - Njoftim kur statusi i një dërgese ndryshon</li>
+            </ul>
+            
+            <p>Ju mund të zgjidhni si të merrni këto njoftime:</p>
+            <ul>
+                <li><strong>Email</strong> - Njoftimet do të dërgohen në adresën tuaj të emailit</li>
+                <li><strong>Në Aplikacion</strong> - Njoftimet do të shfaqen në faqen e njoftimeve të aplikacionit</li>
+                <li><strong>SMS</strong> - Njoftimet do të dërgohen në numrin tuaj të telefonit (nëse është konfiguruar)</li>
+                <li><strong>Të gjitha metodat</strong> - Njoftimet do të dërgohen në të gjitha metodat e disponueshme</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Përditëso etiketën kur ndryshon statusi i checkbox-it
+        $('.form-check-input').on('change', function() {
+            var label = $(this).next('label');
+            if ($(this).is(':checked')) {
+                label.text('Aktivizuar');
+            } else {
+                label.text('Çaktivizuar');
+            }
+        });
+    });
+</script>
+{% endblock %}

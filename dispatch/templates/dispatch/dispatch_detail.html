@@ -1,0 +1,482 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dispatch #{{ dispatch.id }} Details{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dispatch-header {
+        background-color: #f8f9fa;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+
+    .dispatch-header h1 {
+        margin-bottom: 0.5rem;
+    }
+
+    .status-badge {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+        border-radius: 2rem;
+    }
+
+    .status-planned {
+        background-color: #e9f5fe;
+        color: #0d6efd;
+    }
+
+    .status-progress {
+        background-color: #fff4de;
+        color: #fd7e14;
+    }
+
+    .status-completed {
+        background-color: #e0f8e9;
+        color: #198754;
+    }
+
+    .status-cancelled {
+        background-color: #feebee;
+        color: #dc3545;
+    }
+
+    .info-card {
+        height: 100%;
+        border-radius: 0.5rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        border: none;
+    }
+
+    .info-card .card-header {
+        background-color: white;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        font-weight: 600;
+    }
+
+    .info-label {
+        font-weight: 600;
+        color: #6c757d;
+    }
+
+    .timeline {
+        position: relative;
+        padding-left: 2rem;
+        margin-bottom: 0;
+    }
+
+    .timeline:before {
+        content: '';
+        position: absolute;
+        left: 0.5rem;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background-color: #e9ecef;
+    }
+
+    .timeline-item {
+        position: relative;
+        padding-bottom: 1.5rem;
+    }
+
+    .timeline-item:last-child {
+        padding-bottom: 0;
+    }
+
+    .timeline-marker {
+        position: absolute;
+        left: -2rem;
+        top: 0;
+        width: 1rem;
+        height: 1rem;
+        border-radius: 50%;
+        background-color: #0d6efd;
+        border: 2px solid white;
+    }
+
+    .timeline-marker.completed {
+        background-color: #198754;
+    }
+
+    .timeline-marker.cancelled {
+        background-color: #dc3545;
+    }
+
+    .timeline-marker.pending {
+        background-color: #6c757d;
+        border: 2px dashed white;
+    }
+
+    .timeline-content {
+        padding-left: 0.5rem;
+    }
+
+    .timeline-title {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .timeline-date {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+
+    .load-card {
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+        border: none;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+
+    .load-card .card-header {
+        background-color: white;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        font-weight: 600;
+    }
+
+    .load-status {
+        display: inline-block;
+        width: 0.75rem;
+        height: 0.75rem;
+        border-radius: 50%;
+        margin-right: 0.5rem;
+    }
+
+    .load-status.loaded {
+        background-color: #198754;
+    }
+
+    .load-status.not-loaded {
+        background-color: #dc3545;
+    }
+
+    .load-status.delivered {
+        background-color: #198754;
+    }
+
+    .load-status.not-delivered {
+        background-color: #dc3545;
+    }
+
+    .action-buttons {
+        margin-top: 1.5rem;
+    }
+
+    .action-buttons .btn {
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- Dispatch Header -->
+    <div class="dispatch-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1>Dispatch #{{ dispatch.id }}</h1>
+                <div class="d-flex align-items-center">
+                    <span class="status-badge
+                        {% if dispatch.status == 'PLANNED' %}status-planned
+                        {% elif dispatch.status == 'IN_PROGRESS' %}status-progress
+                        {% elif dispatch.status == 'COMPLETED' %}status-completed
+                        {% elif dispatch.status == 'CANCELLED' %}status-cancelled{% endif %}">
+                        {{ dispatch.get_status_display }}
+                    </span>
+                    <span class="ms-3 text-muted">Created: {{ dispatch.created_at|date:"d M Y H:i" }}</span>
+                </div>
+            </div>
+            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                <div class="action-buttons">
+                    {% if dispatch.status == 'PLANNED' %}
+                    <a href="{% url 'dispatch:update_status' dispatch.id 'IN_PROGRESS' %}" class="btn btn-primary">
+                        <i class="bi bi-play-fill"></i> Start Dispatch
+                    </a>
+                    <a href="{% url 'dispatch:update_status' dispatch.id 'CANCELLED' %}" class="btn btn-danger">
+                        <i class="bi bi-x-circle"></i> Cancel
+                    </a>
+                    {% elif dispatch.status == 'IN_PROGRESS' %}
+                    <a href="{% url 'dispatch:update_status' dispatch.id 'COMPLETED' %}" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Complete
+                    </a>
+                    <a href="{% url 'dispatch:update_status' dispatch.id 'CANCELLED' %}" class="btn btn-danger">
+                        <i class="bi bi-x-circle"></i> Cancel
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'dispatch:dispatch_edit' dispatch.id %}" class="btn btn-outline-primary">
+                        <i class="bi bi-pencil"></i> Edit
+                    </a>
+                    <a href="{% url 'dispatch:dispatch_delete' dispatch.id %}" class="btn btn-outline-danger">
+                        <i class="bi bi-trash"></i> Delete
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column - Dispatch Information -->
+        <div class="col-lg-8">
+            <div class="row">
+                <!-- Vehicle Information -->
+                <div class="col-md-6 mb-4">
+                    <div class="card info-card">
+                        <div class="card-header">
+                            <i class="bi bi-truck"></i> Vehicle Information
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-2">
+                                <div class="col-5 info-label">License Plate:</div>
+                                <div class="col-7">{{ dispatch.vehicle.license_plate }}</div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-5 info-label">Vehicle Type:</div>
+                                <div class="col-7">{{ dispatch.vehicle.get_vehicle_type_display }}</div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-5 info-label">Compartments:</div>
+                                <div class="col-7">{{ dispatch.vehicle.compartment_number }}</div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-5 info-label">Has Pump:</div>
+                                <div class="col-7">{% if dispatch.vehicle.has_pump %}Yes{% else %}No{% endif %}</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-5 info-label">Free Flow:</div>
+                                <div class="col-7">{% if dispatch.vehicle.free_flow_unloading %}Yes{% else %}No{% endif %}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Station Information -->
+                <div class="col-md-6 mb-4">
+                    <div class="card info-card">
+                        <div class="card-header">
+                            <i class="bi bi-fuel-pump"></i> Fuel Station
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-2">
+                                <div class="col-5 info-label">Name:</div>
+                                <div class="col-7">{{ dispatch.fuel_station.name }}</div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-5 info-label">Address:</div>
+                                <div class="col-7">{{ dispatch.fuel_station.address }}</div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-5 info-label">Location:</div>
+                                <div class="col-7">{{ dispatch.fuel_station.location }}</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12 mt-2">
+                                    <a href="https://www.google.com/maps/search/?api=1&query={{ dispatch.fuel_station.location|urlencode }}" target="_blank" class="btn btn-sm btn-outline-primary w-100">
+                                        <i class="bi bi-geo-alt"></i> View on Map
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Driver Information -->
+                <div class="col-md-6 mb-4">
+                    <div class="card info-card">
+                        <div class="card-header">
+                            <i class="bi bi-person"></i> Driver Information
+                        </div>
+                        <div class="card-body">
+                            {% if dispatch.driver %}
+                            <div class="row mb-2">
+                                <div class="col-5 info-label">Name:</div>
+                                <div class="col-7">{{ dispatch.driver.get_full_name|default:dispatch.driver.username }}</div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-5 info-label">Username:</div>
+                                <div class="col-7">{{ dispatch.driver.username }}</div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-5 info-label">Email:</div>
+                                <div class="col-7">{{ dispatch.driver.email|default:"Not provided" }}</div>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-3">
+                                <i class="bi bi-person-x fa-2x text-muted mb-2"></i>
+                                <p>No driver assigned to this dispatch</p>
+                                <a href="{% url 'dispatch:dispatch_edit' dispatch.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-person-plus"></i> Assign Driver
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div class="col-md-6 mb-4">
+                    <div class="card info-card">
+                        <div class="card-header">
+                            <i class="bi bi-sticky"></i> Notes
+                        </div>
+                        <div class="card-body">
+                            {% if dispatch.notes %}
+                            <p>{{ dispatch.notes|linebreaks }}</p>
+                            {% else %}
+                            <p class="text-muted text-center">No notes provided for this dispatch</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loads Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-droplet-fill"></i> Loads Information
+                </div>
+                <div class="card-body">
+                    {% if dispatch.loads.all %}
+                    <div class="row">
+                        {% for load in dispatch.loads.all %}
+                        <div class="col-md-6 mb-3">
+                            <div class="load-card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <div>Compartment #{{ load.compartment.compartment_number }}</div>
+                                    <div>{{ load.quantity }} L</div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row mb-2">
+                                        <div class="col-5 info-label">Fuel Type:</div>
+                                        <div class="col-7">{{ load.fuel_type }}</div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-5 info-label">Loaded:</div>
+                                        <div class="col-7">
+                                            <span class="load-status {% if load.loaded %}loaded{% else %}not-loaded{% endif %}"></span>
+                                            {% if load.loaded %}Yes{% else %}No{% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-5 info-label">Delivered:</div>
+                                        <div class="col-7">
+                                            <span class="load-status {% if load.delivered %}delivered{% else %}not-delivered{% endif %}"></span>
+                                            {% if load.delivered %}Yes{% else %}No{% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-droplet-half fa-2x text-muted mb-2"></i>
+                        <p>No loads defined for this dispatch</p>
+                        <a href="{% url 'dispatch:dispatch_edit' dispatch.id %}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-plus-circle"></i> Add Loads
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column - Timeline and Actions -->
+        <div class="col-lg-4">
+            <!-- Dispatch Timeline -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-clock-history"></i> Dispatch Timeline
+                </div>
+                <div class="card-body">
+                    <ul class="timeline">
+                        <li class="timeline-item">
+                            <div class="timeline-marker completed"></div>
+                            <div class="timeline-content">
+                                <div class="timeline-title">Dispatch Created</div>
+                                <div class="timeline-date">{{ dispatch.created_at|date:"d M Y H:i" }}</div>
+                            </div>
+                        </li>
+
+                        <li class="timeline-item">
+                            <div class="timeline-marker {% if dispatch.status == 'PLANNED' %}pending{% else %}completed{% endif %}"></div>
+                            <div class="timeline-content">
+                                <div class="timeline-title">Dispatch Planned</div>
+                                <div class="timeline-date">{{ dispatch.dispatch_date|date:"d M Y H:i" }}</div>
+                            </div>
+                        </li>
+
+                        <li class="timeline-item">
+                            <div class="timeline-marker
+                                {% if dispatch.status == 'IN_PROGRESS' or dispatch.status == 'COMPLETED' %}completed
+                                {% elif dispatch.status == 'CANCELLED' %}cancelled
+                                {% else %}pending{% endif %}">
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-title">Dispatch Started</div>
+                                <div class="timeline-date">
+                                    {% if dispatch.arrival_date %}
+                                        {{ dispatch.arrival_date|date:"d M Y H:i" }}
+                                    {% else %}
+                                        Pending
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </li>
+
+                        <li class="timeline-item">
+                            <div class="timeline-marker
+                                {% if dispatch.status == 'COMPLETED' %}completed
+                                {% elif dispatch.status == 'CANCELLED' %}cancelled
+                                {% else %}pending{% endif %}">
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-title">Dispatch Completed</div>
+                                <div class="timeline-date">
+                                    {% if dispatch.completion_date %}
+                                        {{ dispatch.completion_date|date:"d M Y H:i" }}
+                                    {% else %}
+                                        Pending
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-lightning-charge"></i> Quick Actions
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'dispatch:dispatch_list' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to List
+                        </a>
+
+                        {% if dispatch.status == 'PLANNED' or dispatch.status == 'IN_PROGRESS' %}
+                        <a href="#" class="btn btn-outline-primary">
+                            <i class="bi bi-printer"></i> Print Dispatch Sheet
+                        </a>
+                        {% endif %}
+
+                        <a href="{% url 'tracking:dashboard' %}?vehicle_id={{ dispatch.vehicle.id }}" class="btn btn-outline-info">
+                            <i class="bi bi-geo-alt"></i> Track Vehicle
+                        </a>
+
+                        <a href="#" class="btn btn-outline-warning">
+                            <i class="bi bi-envelope"></i> Contact Driver
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

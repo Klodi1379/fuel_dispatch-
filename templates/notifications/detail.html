@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}Detaje Njoftimi{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Detaje Njoftimi</h1>
+        <a href="{% url 'notifications:list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Kthehu te Lista
+        </a>
+    </div>
+    
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5>{{ notification.subject }}</h5>
+            <span class="badge {% if notification.is_read %}bg-secondary{% else %}bg-primary{% endif %}">
+                {% if notification.is_read %}Lexuar{% else %}E Re{% endif %}
+            </span>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <strong>Lloji:</strong> {{ notification.notification_type.name }}
+            </div>
+            <div class="mb-3">
+                <strong>Data:</strong> {{ notification.created_at|date:"d M Y H:i" }}
+            </div>
+            <div class="mb-4">
+                <strong>Mesazhi:</strong>
+                <div class="mt-2 p-3 bg-light rounded">
+                    {{ notification.message|linebreaks }}
+                </div>
+            </div>
+            
+            {% if notification.related_object %}
+            <div class="mb-3">
+                <strong>Lidhur me:</strong>
+                {% if notification.content_type.model == 'fueltank' %}
+                <a href="{% url 'fuelstation:fuelstation_detail' notification.related_object.fuel_station.id %}">
+                    {{ notification.related_object.fuel_station.name }} - {{ notification.related_object.get_fuel_type_display }}
+                </a>
+                {% elif notification.content_type.model == 'vehicle' %}
+                <a href="{% url 'truck:edit_vehicle' notification.related_object.id %}">
+                    {{ notification.related_object.license_plate }}
+                </a>
+                {% elif notification.content_type.model == 'dispatch' %}
+                <a href="#">
+                    Dërgesa #{{ notification.related_object.id }}
+                </a>
+                {% else %}
+                {{ notification.related_object }}
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            <div class="mt-4">
+                <h6>Historia e Njoftimit</h6>
+                <ul class="list-group">
+                    {% for event in notification.events.all %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ event.get_event_type_display }}
+                        <span class="badge bg-info">{{ event.timestamp|date:"d M Y H:i:s" }}</span>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item">Nuk ka ngjarje të regjistruara.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        <div class="card-footer">
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'notifications:list' %}" class="btn btn-secondary">Kthehu</a>
+                {% if not notification.is_read %}
+                <form method="post" action="{% url 'notifications:mark_read' notification.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary">Shëno si të Lexuar</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

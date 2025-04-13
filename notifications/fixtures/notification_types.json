@@ -1,0 +1,47 @@
+[
+  {
+    "model": "notifications.notificationtype",
+    "pk": 1,
+    "fields": {
+      "code": "LOW_FUEL_LEVEL",
+      "name": "Nivel i Ulët Karburanti",
+      "description": "Njoftim kur niveli i karburantit në një stacion bie nën 20% të kapacitetit"
+    }
+  },
+  {
+    "model": "notifications.notificationtype",
+    "pk": 2,
+    "fields": {
+      "code": "MAINTENANCE_DUE",
+      "name": "Mirëmbajtje e Planifikuar",
+      "description": "Njoftim kur një automjet ka nevojë për mirëmbajtje të planifikuar"
+    }
+  },
+  {
+    "model": "notifications.notificationtype",
+    "pk": 3,
+    "fields": {
+      "code": "DELIVERY_DELAY",
+      "name": "Vonesë në Dërgesë",
+      "description": "Njoftim kur një dërgesë është vonuar"
+    }
+  },
+  {
+    "model": "notifications.notificationtype",
+    "pk": 4,
+    "fields": {
+      "code": "DISPATCH_STATUS_CHANGE",
+      "name": "Ndryshim Statusi Dërgese",
+      "description": "Njoftim kur statusi i një dërgese ndryshon"
+    }
+  },
+  {
+    "model": "notifications.notificationtype",
+    "pk": 5,
+    "fields": {
+      "code": "SYSTEM_ALERT",
+      "name": "Njoftim Sistemi",
+      "description": "Njoftime të rëndësishme të sistemit"
+    }
+  }
+]

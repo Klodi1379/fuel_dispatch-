@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+
+{% block title %}Njoftimet{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Njoftimet</h1>
+        <div>
+            <a href="{% url 'notifications:settings' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-gear"></i> Konfigurimet
+            </a>
+            {% if unread_count > 0 %}
+            <button id="mark-all-read" class="btn btn-primary ms-2">
+                <i class="bi bi-check-all"></i> Shëno të gjitha si të lexuara
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#all-notifications" data-bs-toggle="tab">Të gjitha</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#unread-notifications" data-bs-toggle="tab">
+                        Të palexuara
+                        {% if unread_count > 0 %}
+                        <span class="badge bg-danger">{{ unread_count }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="all-notifications">
+                    <div class="list-group">
+                        {% for notification in notifications %}
+                        <a href="{% url 'notifications:detail' notification.id %}" class="list-group-item list-group-item-action {% if not notification.is_read %}list-group-item-primary{% endif %}">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">{{ notification.subject }}</h5>
+                                <small>{{ notification.created_at|date:"d M Y H:i" }}</small>
+                            </div>
+                            <p class="mb-1">{{ notification.message|truncatechars:100 }}</p>
+                            <small>{{ notification.notification_type.name }}</small>
+                            {% if not notification.is_read %}
+                            <span class="badge bg-primary float-end">E re</span>
+                            {% endif %}
+                        </a>
+                        {% empty %}
+                        <div class="alert alert-info">Nuk keni njoftime.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="unread-notifications">
+                    <div class="list-group">
+                        {% for notification in notifications %}
+                        {% if not notification.is_read %}
+                        <a href="{% url 'notifications:detail' notification.id %}" class="list-group-item list-group-item-action list-group-item-primary">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">{{ notification.subject }}</h5>
+                                <small>{{ notification.created_at|date:"d M Y H:i" }}</small>
+                            </div>
+                            <p class="mb-1">{{ notification.message|truncatechars:100 }}</p>
+                            <small>{{ notification.notification_type.name }}</small>
+                            <span class="badge bg-primary float-end">E re</span>
+                        </a>
+                        {% endif %}
+                        {% empty %}
+                        <div class="alert alert-info">Nuk keni njoftime të palexuara.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Shëno të gjitha njoftimet si të lexuara
+        $('#mark-all-read').on('click', function() {
+            $.ajax({
+                url: '{% url "notifications:mark_all_read" %}',
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        // Rifresko faqen
+                        location.reload();
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Gabim gjatë shënimit të njoftimeve:', error);
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

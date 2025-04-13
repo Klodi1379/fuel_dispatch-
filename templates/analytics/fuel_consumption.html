@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+
+{% block title %}Raporti i Konsumit të Karburantit{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Raporti i Konsumit të Karburantit</h1>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Filtrat e Raportit</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="start_date" class="form-label">Data e fillimit</label>
+                    <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="end_date" class="form-label">Data e përfundimit</label>
+                    <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="station_id" class="form-label">Stacioni</label>
+                    <select class="form-select" id="station_id" name="station_id">
+                        <option value="">Të gjitha stacionet</option>
+                        {% for station in stations %}
+                        <option value="{{ station.id }}" {% if station_id == station.id|stringformat:"s" %}selected{% endif %}>
+                            {{ station.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="fuel_type" class="form-label">Lloji i karburantit</label>
+                    <select class="form-select" id="fuel_type" name="fuel_type">
+                        <option value="">Të gjitha llojet</option>
+                        <option value="GASOLINE" {% if fuel_type == "GASOLINE" %}selected{% endif %}>Benzinë</option>
+                        <option value="DIESEL" {% if fuel_type == "DIESEL" %}selected{% endif %}>Naftë</option>
+                        <option value="LPG" {% if fuel_type == "LPG" %}selected{% endif %}>Gaz (LPG)</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button type="submit" name="generate" class="btn btn-primary">Gjenero Raportin</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if report_data %}
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5>Rezultatet e Raportit</h5>
+            <div>
+                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#saveReportModal">
+                    <i class="bi bi-save"></i> Ruaj Raportin
+                </button>
+                <button type="button" class="btn btn-outline-secondary ms-2" onclick="window.print()">
+                    <i class="bi bi-printer"></i> Printo
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if report_data.chart_config %}
+            <div class="mb-4">
+                <h6>Grafiku i Konsumit të Karburantit</h6>
+                <img src="data:image/png;base64,{{ report_data.chart_config.image_base64 }}" class="img-fluid" alt="Grafiku i konsumit">
+            </div>
+            {% endif %}
+
+            {% if report_data.data %}
+            <h6>Të dhënat e detajuara</h6>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Lloji i Karburantit</th>
+                            <th>Sasia e Dorëzuar (L)</th>
+                            <th>Sasia e Shitur (L)</th>
+                            <th>Diferenca</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in report_data.data %}
+                        <tr>
+                            <td>{{ item.date }}</td>
+                            <td>
+                                {% if item.fuel_type == "GASOLINE" %}Benzinë
+                                {% elif item.fuel_type == "DIESEL" %}Naftë
+                                {% elif item.fuel_type == "LPG" %}Gaz (LPG)
+                                {% else %}{{ item.fuel_type }}{% endif %}
+                            </td>
+                            <td>{{ item.total_delivered }}</td>
+                            <td>{{ item.total_sold }}</td>
+                            <td>{{ item.difference }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">Nuk u gjetën të dhëna për kriteret e zgjedhura.</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Modal për ruajtjen e raportit -->
+    <div class="modal fade" id="saveReportModal" tabindex="-1" aria-labelledby="saveReportModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="get">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="saveReportModalLabel">Ruaj Raportin</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="report_title" class="form-label">Titulli i Raportit</label>
+                            <input type="text" class="form-control" id="report_title" name="report_title"
+                                   value="Konsumi i Karburantit {{ start_date }} deri {{ end_date }}">
+                        </div>
+
+                        <!-- Ruaj filtrat e përdorur -->
+                        <input type="hidden" name="start_date" value="{{ start_date }}">
+                        <input type="hidden" name="end_date" value="{{ end_date }}">
+                        <input type="hidden" name="station_id" value="{{ station_id }}">
+                        <input type="hidden" name="fuel_type" value="{{ fuel_type }}">
+                        <input type="hidden" name="generate" value="1">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anulo</button>
+                        <button type="submit" name="save_report" class="btn btn-primary">Ruaj</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

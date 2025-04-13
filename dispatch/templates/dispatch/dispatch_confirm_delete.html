@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}Confirm Delete Dispatch{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card mt-5 shadow-sm">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle-fill me-2"></i>Confirm Deletion</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <p class="mb-0">Are you sure you want to delete dispatch #{{ dispatch.id }}?</p>
+                        <p class="small text-muted mt-2">This action cannot be undone.</p>
+                    </div>
+                    
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h6 class="card-title">Dispatch Details</h6>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Vehicle:</span>
+                                    <span class="fw-bold">{{ dispatch.vehicle.license_plate }}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Fuel Station:</span>
+                                    <span class="fw-bold">{{ dispatch.fuel_station.name }}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Status:</span>
+                                    <span class="fw-bold">{{ dispatch.get_status_display }}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Dispatch Date:</span>
+                                    <span class="fw-bold">{{ dispatch.dispatch_date|date:"d M Y H:i" }}</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-end">
+                            <a href="{% url 'dispatch:dispatch_detail' dispatch.id %}" class="btn btn-outline-secondary me-2">
+                                <i class="bi bi-x-circle me-1"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-trash me-1"></i>Delete Dispatch
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

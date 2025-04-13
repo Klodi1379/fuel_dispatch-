@@ -46,6 +46,11 @@ INSTALLED_APPS = [
     "dispatch",
     "accounts",
     "dashboards",
+    'rest_framework',
+    'channels',
+    'tracking',
+    'notifications',
+    'analytics',
 ]
 
 MIDDLEWARE = [
@@ -77,6 +82,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "TRUCK_DISPACHER.wsgi.application"
+ASGI_APPLICATION = "TRUCK_DISPACHER.asgi.application"
 
 
 # Database
@@ -135,3 +141,18 @@ STATIC_URL = '/static/'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    }
+}
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+}

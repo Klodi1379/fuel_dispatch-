@@ -17,4 +17,8 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
     path('password-change/', auth_views.PasswordChangeView.as_view(template_name='accounts/password_change.html'), name='password_change'),
     path('password-change/done/', auth_views.PasswordChangeDoneView.as_view(template_name='accounts/password_change_done.html'), name='password_change_done'),
+    path('tracking/', include('tracking.urls')),
+    path('notifications/', include('notifications.urls')),
+    path('analytics/', include('analytics.urls')),
+    path('api-auth/', include('rest_framework.urls')),
 ]

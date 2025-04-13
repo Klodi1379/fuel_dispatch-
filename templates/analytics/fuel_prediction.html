@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+
+{% block title %}Parashikimi i Nevojave për Karburant{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Parashikimi i Nevojave për Karburant</h1>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Parametrat e Parashikimit</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-6">
+                    <label for="station_id" class="form-label">Stacioni</label>
+                    <select class="form-select" id="station_id" name="station_id" required>
+                        <option value="">Zgjidhni një stacion</option>
+                        {% for station in stations %}
+                        <option value="{{ station.id }}" {% if station_id == station.id|stringformat:"s" %}selected{% endif %}>
+                            {{ station.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label for="days_ahead" class="form-label">Ditë përpara</label>
+                    <select class="form-select" id="days_ahead" name="days_ahead">
+                        <option value="3" {% if days_ahead == 3 %}selected{% endif %}>3 ditë</option>
+                        <option value="7" {% if days_ahead == 7 %}selected{% endif %}>1 javë</option>
+                        <option value="14" {% if days_ahead == 14 %}selected{% endif %}>2 javë</option>
+                        <option value="30" {% if days_ahead == 30 %}selected{% endif %}>1 muaj</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">Gjenero Parashikimin</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if prediction_data %}
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5>Rezultatet e Parashikimit</h5>
+            <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
+                <i class="bi bi-printer"></i> Printo
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="mb-4">
+                <h6>Informacion i Përgjithshëm</h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-2">
+                            <strong>Stacioni:</strong> {{ prediction_data.station.name }}
+                        </div>
+                        <div class="mb-2">
+                            <strong>Vendndodhja:</strong> {{ prediction_data.station.location }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-2">
+                            <strong>Data e parashikimit:</strong> {{ prediction_data.prediction_date }}
+                        </div>
+                        <div class="mb-2">
+                            <strong>Periudha e parashikimit:</strong> {{ prediction_data.days_ahead }} ditë
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h6>Parashikimet sipas Llojit të Karburantit</h6>
+            <div class="row">
+                {% for prediction in prediction_data.predictions %}
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 {% if prediction.needs_refill %}border-danger{% endif %}">
+                        <div class="card-header {% if prediction.needs_refill %}bg-danger text-white{% endif %}">
+                            <h6 class="mb-0">{{ prediction.fuel_type_display }}</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <div class="progress" style="height: 25px;">
+                                    <div class="progress-bar {% if prediction.predicted_percentage < 20 %}bg-danger{% elif prediction.predicted_percentage < 50 %}bg-warning{% else %}bg-success{% endif %}"
+                                         role="progressbar"
+                                         style="width: {{ prediction.predicted_percentage }}%;"
+                                         aria-valuenow="{{ prediction.predicted_percentage }}"
+                                         aria-valuemin="0"
+                                         aria-valuemax="100">
+                                        {{ prediction.predicted_percentage }}%
+                                    </div>
+                                </div>
+                                <small class="text-muted">Niveli i parashikuar pas {{ prediction_data.days_ahead }} ditësh</small>
+                            </div>
+
+                            <div class="mb-2">
+                                <strong>Niveli aktual:</strong> {{ prediction.current_level }} litra ({{ prediction.current_level_percentage|floatformat:1 }}%)
+                            </div>
+                            <div class="mb-2">
+                                <strong>Niveli i parashikuar:</strong> {{ prediction.predicted_level }} litra ({{ prediction.predicted_percentage }}%)
+                            </div>
+                            <div class="mb-2">
+                                <strong>Kapaciteti total:</strong> {{ prediction.capacity }} litra
+                            </div>
+                            <div class="mb-2">
+                                <strong>Konsumi mesatar ditor:</strong> {{ prediction.avg_daily_consumption }} litra/ditë
+                            </div>
+                            <div class="mb-2">
+                                <strong>Ditë deri në zbrazje:</strong> {{ prediction.days_until_empty }} ditë
+                            </div>
+
+                            {% if prediction.needs_refill %}
+                            <div class="alert alert-danger mt-3">
+                                <i class="bi bi-exclamation-triangle-fill"></i> Nevojitet rimbushje brenda {{ prediction_data.days_ahead }} ditësh!
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="alert alert-info">Nuk ka të dhëna për parashikim për këtë stacion.</div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="mt-4">
+                <h6>Rekomandime</h6>
+                <ul class="list-group">
+                    {% for prediction in prediction_data.predictions %}
+                    {% if prediction.needs_refill %}
+                    <li class="list-group-item list-group-item-danger">
+                        <strong>{{ prediction.fuel_type_display }}:</strong> Planifikoni një dërgesë prej të paktën {{ prediction.recommended_delivery_amount|floatformat:0 }} litra brenda {{ prediction.days_until_empty }} ditësh.
+                    </li>
+                    {% elif prediction.days_until_empty <= 14 %}
+                    <li class="list-group-item list-group-item-warning">
+                        <strong>{{ prediction.fuel_type_display }}:</strong> Monitoroni nivelin, mund të nevojitet një dërgesë brenda 2 javësh.
+                    </li>
+                    {% else %}
+                    <li class="list-group-item list-group-item-success">
+                        <strong>{{ prediction.fuel_type_display }}:</strong> Niveli është i mjaftueshëm për të paktën {{ prediction.days_until_empty }} ditë.
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

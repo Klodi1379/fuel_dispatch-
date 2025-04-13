@@ -1,153 +1,450 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Fleet Management Dashboard{% endblock %}
+
+{% block extra_head %}
+<!-- Chart.js for data visualization -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Leaflet for maps -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Font Awesome icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- Dashboard specific styles -->
+<style>
+    /* Dashboard layout and styling */
+    .dashboard-container {
+        background-color: #f8f9fa;
+        padding: 1.5rem;
+    }
+
+    .card {
+        border-radius: 0.5rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        border: none;
+        margin-bottom: 1.5rem;
+    }
+
+    .card-header {
+        background-color: white;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        padding: 1rem 1.25rem;
+    }
+
+    .stat-card {
+        position: relative;
+        padding-left: 1rem;
+        border-left: 4px solid;
+    }
+
+    .stat-card.primary { border-color: #4e73df; }
+    .stat-card.success { border-color: #1cc88a; }
+    .stat-card.warning { border-color: #f6c23e; }
+    .stat-card.danger { border-color: #e74a3b; }
+
+    .stat-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-bottom: 0;
+    }
+
+    .stat-label {
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #5a5c69;
+    }
+
+    .stat-icon {
+        position: absolute;
+        right: 1.25rem;
+        top: 50%;
+        transform: translateY(-50%);
+        opacity: 0.3;
+        font-size: 2rem;
+    }
+
+    .progress {
+        height: 0.8rem;
+        border-radius: 0.4rem;
+    }
+
+    #vehicleMap {
+        height: 400px;
+        width: 100%;
+        border-radius: 0.3rem;
+    }
+
+    .badge-status {
+        padding: 0.4rem 0.7rem;
+        border-radius: 30px;
+        font-weight: 500;
+    }
+
+    .notification-list {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    .notification-item {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .notification-item:last-child {
+        border-bottom: none;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container-fluid px-4">
-    <h1 class="mt-4">Dashboard</h1>
-    <div class="row">
-        <div class="col-xl-3 col-md-6">
-            <div class="card bg-primary text-white mb-4">
-                <div class="card-body">
-                    <h2>{{ total_vehicles }}</h2>
-                    <p>Kamionë Aktivë</p>
-                </div>
-            </div>
+<div class="dashboard-container">
+    <!-- Dashboard Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Fleet Management Dashboard</h1>
+            <p class="text-muted">{{ now|date:"l, F j, Y" }} at {{ now|date:"g:i A" }}</p>
         </div>
-        <div class="col-xl-3 col-md-6">
-            <div class="card bg-success text-white mb-4">
-                <div class="card-body">
-                    <h2>{{ total_stations }}</h2>
-                    <p>Stacione Karburanti</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-md-6">
-            <div class="card bg-warning text-white mb-4">
-                <div class="card-body">
-                    <h2>{{ total_dispatches }}</h2>
-                    <p>Dispečë Totale</p>
-                </div>
-            </div>
+        <div>
+            <button class="btn btn-primary btn-sm">
+                <i class="fas fa-download fa-sm mr-2"></i>Export Report
+            </button>
         </div>
     </div>
-    
+
+    <!-- Stats Overview Row -->
     <div class="row">
-        <div class="col-xl-6">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <i class="fas fa-chart-area me-1"></i>
-                    Dispečët e Sotëm ({{ today|date:"d M Y" }})
-                </div>
-                <div class="card-body">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Kamioni</th>
-                                <th>Stacioni</th>
-                                <th>Statusi</th>
-                                <th>Veprime</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for dispatch in today_dispatches %}
-                            <tr>
-                                <td>{{ dispatch.id }}</td>
-                                <td>{{ dispatch.vehicle.license_plate }}</td>
-                                <td>{{ dispatch.station.name }}</td>  <!-- Fix: Shtohet kolona e stacionit -->
-                                <td>{{ dispatch.get_status_display }}</td>
-                                <td>
-                                    <a href="{% url 'dispatch:dispatch_detail' dispatch.id %}" class="btn btn-sm btn-outline-primary">Shiko</a>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="5" class="text-center">Nuk ka dispečë për sot</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+        <!-- Vehicles Stats -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card h-100">
+                <div class="card-body stat-card primary">
+                    <div class="stat-value">{{ total_vehicles }}</div>
+                    <div class="stat-label">Total Vehicles</div>
+                    <div class="mt-2">
+                        <span class="badge bg-success">{{ active_vehicles }} Active</span>
+                        <span class="badge bg-warning text-dark">{{ maintenance_vehicles_count }} Maintenance</span>
+                    </div>
+                    <i class="fas fa-truck stat-icon text-primary"></i>
                 </div>
             </div>
         </div>
-        <div class="col-xl-6">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <i class="fas fa-wrench me-1"></i>
-                    Kamionët që Kanë Nevojë për Mirëmbajtje
+
+        <!-- Dispatch Stats -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card h-100">
+                <div class="card-body stat-card success">
+                    <div class="stat-value">{{ total_dispatches }}</div>
+                    <div class="stat-label">Total Dispatches</div>
+                    <div class="row mt-2">
+                        <div class="col">
+                            <div class="d-flex justify-content-between">
+                                <span class="small">Planned</span>
+                                <span class="small fw-bold">{{ planned_dispatches }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="small">In Progress</span>
+                                <span class="small fw-bold">{{ in_progress_dispatches }}</span>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="d-flex justify-content-between">
+                                <span class="small">Completed</span>
+                                <span class="small fw-bold">{{ completed_dispatches }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="small">Cancelled</span>
+                                <span class="small fw-bold">{{ cancelled_dispatches }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <i class="fas fa-route stat-icon text-success"></i>
                 </div>
-                <div class="card-body">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Targë</th>
-                                <th>Data e Fundit</th>
-                                <th>Data e Ardhshme</th>
-                                <th>Veprime</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for vehicle in maintenance_vehicles %}
-                            <tr>
-                                <td>{{ vehicle.license_plate }}</td>
-                                <td>{{ vehicle.last_maintenance_date|date:"d M Y" }}</td>
-                                <td>{{ vehicle.next_maintenance_date|date:"d M Y" }}</td>
-                                <td>
-                                    <a href="{% url 'truck:edit_vehicle' vehicle.id %}" class="btn btn-sm btn-outline-warning">Përditëso</a>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="4" class="text-center">Nuk ka kamionë që kanë nevojë për mirëmbajtje</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+            </div>
+        </div>
+
+        <!-- Fuel Stations -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card h-100">
+                <div class="card-body stat-card warning">
+                    <div class="stat-value">{{ total_stations }}</div>
+                    <div class="stat-label">Fuel Stations</div>
+                    <div class="mt-2">
+                        {% for fuel_type, data in fuel_levels.items %}
+                        <div class="mb-1">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="small">{{ fuel_type }}</span>
+                                <span class="small">{{ data.percentage }}%</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar
+                                    {% if data.percentage > 70 %}bg-success
+                                    {% elif data.percentage > 30 %}bg-warning
+                                    {% else %}bg-danger{% endif %}"
+                                    style="width: {{ data.percentage }}%"
+                                    aria-valuenow="{{ data.percentage }}"
+                                    aria-valuemin="0"
+                                    aria-valuemax="100">
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <i class="fas fa-gas-pump stat-icon text-warning"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notifications -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card h-100">
+                <div class="card-body stat-card danger">
+                    <div class="stat-value">{{ recent_notifications|length }}</div>
+                    <div class="stat-label">Recent Alerts</div>
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-outline-secondary w-100">View All Notifications</button>
+                    </div>
+                    <i class="fas fa-bell stat-icon text-danger"></i>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Fix: Vendosja e div-it brenda block content -->
-    <div class="row mt-4">
-        <div class="col-12">
+    <!-- Charts Row -->
+    <div class="row">
+        <!-- Dispatch Trend Chart -->
+        <div class="col-lg-8">
             <div class="card mb-4">
-                <div class="card-header">
-                    <i class="fas fa-gas-pump me-1"></i>
-                    Stacionet e Karburantit
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="m-0 font-weight-bold text-primary">Dispatch Trend (Last 30 Days)</h5>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="chartOptions" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="chartOptions">
+                            <li><a class="dropdown-item" href="#">Export as PNG</a></li>
+                            <li><a class="dropdown-item" href="#">Export as CSV</a></li>
+                            <li><a class="dropdown-item" href="#">View Full Report</a></li>
+                        </ul>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Emri</th>
-                                <th>Adresa</th>
-                                <th>Lokacioni</th>
-                                <th>Rezervuarët</th>
-                                <th>Veprime</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for station in fuel_stations %}
-                            <tr>
-                                <td>{{ station.name }}</td>
-                                <td>{{ station.address }}</td>
-                                <td>{{ station.location }}</td>
-                                <td>
-                                    {% for tank in station.fuel_tanks.all %}
-                                    {{ tank.fuel_type }} ({{ tank.capacity }}L){% if not forloop.last %}, {% endif %}
-                                    {% endfor %}
-                                </td>
-                                <td>
-                                    <a href="{% url 'fuelstation:fuelstation_detail' station.id %}" class="btn btn-sm btn-outline-primary">Shiko</a>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="5" class="text-center">Nuk ka stacione karburanti të regjistruara</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                    <div class="chart-container" style="position: relative; height:300px;">
+                        <canvas id="dispatchTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fuel Levels -->
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="m-0 font-weight-bold text-primary">Fuel Tank Levels</h5>
+                </div>
+                <div class="card-body">
+                    {% for fuel_type, data in fuel_levels.items %}
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <h6 class="mb-0">{{ fuel_type }}</h6>
+                            <span class="badge
+                                {% if data.percentage > 70 %}bg-success
+                                {% elif data.percentage > 30 %}bg-warning
+                                {% else %}bg-danger{% endif %}">
+                                {{ data.percentage }}%
+                            </span>
+                        </div>
+                        <div class="progress mb-1" style="height: 25px;">
+                            <div class="progress-bar
+                                {% if data.percentage > 70 %}bg-success
+                                {% elif data.percentage > 30 %}bg-warning
+                                {% else %}bg-danger{% endif %}"
+                                style="width: {{ data.percentage }}%"
+                                aria-valuenow="{{ data.percentage }}"
+                                aria-valuemin="0"
+                                aria-valuemax="100">
+                                {{ data.percentage }}%
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <small class="text-muted">Current: {{ data.current|floatformat:1 }} L</small>
+                            <small class="text-muted">Capacity: {{ data.capacity|floatformat:1 }} L</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Map and Today's Dispatches -->
+    <div class="row">
+        <!-- Vehicle Map -->
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="m-0 font-weight-bold text-primary">Vehicle Locations</h5>
+                    <span class="badge bg-info">Last 24 hours</span>
+                </div>
+                <div class="card-body">
+                    <div id="vehicleMap"></div>
+                </div>
+                <div class="card-footer small text-muted">
+                    Showing {{ map_data|safe|length }} active vehicles
+                </div>
+            </div>
+        </div>
+
+        <!-- Today's Dispatches -->
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="m-0 font-weight-bold text-primary">Today's Dispatches</h5>
+                    <span class="badge bg-primary">{{ today|date:"F j, Y" }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Vehicle</th>
+                                    <th>Station</th>
+                                    <th>Time</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for dispatch in today_dispatches %}
+                                <tr>
+                                    <td>{{ dispatch.id }}</td>
+                                    <td>{{ dispatch.license_plate }}</td>
+                                    <td>{{ dispatch.station_name }}</td>
+                                    <td>{{ dispatch.dispatch_date|date:"H:i" }}</td>
+                                    <td>
+                                        <span class="badge badge-status
+                                        {% if dispatch.status == 'PLANNED' %}bg-secondary
+                                        {% elif dispatch.status == 'IN_PROGRESS' %}bg-primary
+                                        {% elif dispatch.status == 'COMPLETED' %}bg-success
+                                        {% elif dispatch.status == 'CANCELLED' %}bg-danger
+                                        {% else %}bg-info{% endif %}">
+                                            {% if dispatch.status == 'PLANNED' %}Planned
+                                            {% elif dispatch.status == 'IN_PROGRESS' %}In Progress
+                                            {% elif dispatch.status == 'COMPLETED' %}Completed
+                                            {% elif dispatch.status == 'CANCELLED' %}Cancelled
+                                            {% else %}{{ dispatch.status }}{% endif %}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center">
+                                        <i class="fas fa-calendar-day text-muted fa-3x my-3"></i>
+                                        <p>No dispatches scheduled for today</p>
+                                        <button class="btn btn-sm btn-primary">
+                                            <i class="fas fa-plus me-1"></i>Create Dispatch
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer small text-muted">
+                    Showing {{ today_dispatches|length }} dispatches
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerts and Maintenance -->
+    <div class="row">
+        <!-- Recent Notifications -->
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="m-0 font-weight-bold text-primary">Recent Alerts</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="notification-list p-3">
+                        {% for notification in recent_notifications %}
+                            <div class="notification-item">
+                                <div class="d-flex">
+                                    <div class="me-3">
+                                        <i class="fas
+                                        {% if 'error' in notification.message|lower %}fa-exclamation-circle text-danger
+                                        {% elif 'warning' in notification.message|lower %}fa-exclamation-triangle text-warning
+                                        {% else %}fa-info-circle text-info{% endif %} fa-lg"></i>
+                                    </div>
+                                    <div>
+                                        <p class="mb-1">{{ notification.message }}</p>
+                                        <small class="text-muted">{{ notification.created_at|timesince }} ago</small>
+                                    </div>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+                                <p>No active alerts</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Maintenance Vehicles -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="m-0 font-weight-bold text-primary">Vehicles Due for Maintenance</h5>
+                    <button class="btn btn-sm btn-warning">
+                        <i class="fas fa-wrench me-1"></i>Schedule Maintenance
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>License Plate</th>
+                                    <th>Model</th>
+                                    <th>Next Maintenance</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for vehicle in maintenance_vehicles %}
+                                <tr>
+                                    <td>
+                                        <i class="fas fa-truck-moving me-2 text-secondary"></i>
+                                        {{ vehicle.license_plate }}
+                                    </td>
+                                    <td>{{ vehicle.model }}</td>
+                                    <td>{{ vehicle.next_maintenance_date|date:"M d, Y" }}</td>
+                                    <td>
+                                        <span class="badge {% if vehicle.is_active %}bg-success{% else %}bg-danger{% endif %} badge-status">
+                                            {% if vehicle.is_active %}Active{% else %}Inactive{% endif %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary">Details</button>
+                                        <button class="btn btn-sm btn-outline-warning">Schedule</button>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center">
+                                        <i class="fas fa-check-circle text-success fa-3x my-3"></i>
+                                        <p>No vehicles due for maintenance</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -155,4 +452,115 @@
 </div>
 {% endblock %}
 
+{% block extra_js %}
+<script>
+    // Initialize the dispatch trend chart
+    const dispatchChartData = {{ dispatch_chart_data|safe }};
+    const ctx = document.getElementById('dispatchTrendChart').getContext('2d');
+    const dispatchChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: dispatchChartData.map(item => {
+                const date = new Date(item.date);
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            }),
+            datasets: [{
+                label: 'Dispatches',
+                data: dispatchChartData.map(item => item.count),
+                backgroundColor: 'rgba(78, 115, 223, 0.2)',
+                borderColor: 'rgba(78, 115, 223, 1)',
+                borderWidth: 2,
+                tension: 0.3,
+                fill: true,
+                pointBackgroundColor: '#fff',
+                pointBorderColor: 'rgba(78, 115, 223, 1)',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                    titleFont: {
+                        size: 14
+                    },
+                    bodyFont: {
+                        size: 13
+                    },
+                    padding: 10,
+                    cornerRadius: 4
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
 
+    // Initialize the map
+    const mapData = {{ map_data|safe }};
+    const map = L.map('vehicleMap').setView([0, 0], 2);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+    }).addTo(map);
+
+    // If we have map data, add markers and adjust view
+    if (mapData && mapData.length > 0) {
+        const bounds = [];
+
+        mapData.forEach(vehicle => {
+            // Custom icon for vehicles
+            const truckIcon = L.divIcon({
+                html: `<i class="fas fa-truck-moving" style="font-size: 20px; color: #4e73df;"></i>`,
+                className: 'vehicle-map-icon',
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+            });
+
+            const marker = L.marker([vehicle.latitude, vehicle.longitude], {
+                icon: truckIcon
+            }).addTo(map);
+
+            marker.bindPopup(`
+                <div style="width: 200px;">
+                    <h6 class="mb-2">${vehicle.license_plate}</h6>
+                    <p class="mb-1"><strong>Speed:</strong> ${vehicle.speed} km/h</p>
+                    <p class="mb-3"><strong>Last Update:</strong> ${vehicle.timestamp}</p>
+                    <button class="btn btn-sm btn-primary w-100">View Details</button>
+                </div>
+            `);
+
+            bounds.push([vehicle.latitude, vehicle.longitude]);
+        });
+
+        // Fit map to show all markers
+        if (bounds.length > 0) {
+            map.fitBounds(bounds);
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,52 @@
+[
+  {
+    "model": "notifications.notificationtemplate",
+    "pk": 1,
+    "fields": {
+      "notification_type": 1,
+      "subject_template": "Nivel i ulët karburanti në {{ station_name }}",
+      "email_template": "Përshëndetje,\n\nNiveli i karburantit {{ fuel_type }} në stacionin {{ station_name }} ka rënë në {{ percentage }}% të kapacitetit ({{ current_level }} nga {{ capacity }} litra).\n\nJu lutemi planifikoni një dërgesë sa më shpejt të jetë e mundur.\n\nMe respekt,\nSistemi i Menaxhimit të Karburantit",
+      "sms_template": "NJOFTIM: Nivel i ulët karburanti {{ fuel_type }} në {{ station_name }}: {{ percentage }}%"
+    }
+  },
+  {
+    "model": "notifications.notificationtemplate",
+    "pk": 2,
+    "fields": {
+      "notification_type": 2,
+      "subject_template": "Mirëmbajtje e planifikuar për automjetin {{ license_plate }}",
+      "email_template": "Përshëndetje,\n\nAutomjeti {{ vehicle }} me targë {{ license_plate }} ka nevojë për mirëmbajtje të planifikuar më datë {{ maintenance_date }}.\n\nJu lutemi planifikoni mirëmbajtjen në kohë për të shmangur probleme të mundshme.\n\nMe respekt,\nSistemi i Menaxhimit të Flotës",
+      "sms_template": "NJOFTIM: Mirëmbajtje e planifikuar për {{ license_plate }} më {{ maintenance_date }}"
+    }
+  },
+  {
+    "model": "notifications.notificationtemplate",
+    "pk": 3,
+    "fields": {
+      "notification_type": 3,
+      "subject_template": "Vonesë në dërgesën #{{ dispatch_id }}",
+      "email_template": "Përshëndetje,\n\nDërgesa #{{ dispatch_id }} për stacionin {{ station_name }} është vonuar.\n\nArsyeja e vonesës: {{ delay_reason }}\n\nKoha e re e parashikuar e mbërritjes: {{ new_eta }}\n\nMe respekt,\nSistemi i Menaxhimit të Dërgesave",
+      "sms_template": "NJOFTIM: Dërgesa #{{ dispatch_id }} është vonuar. ETA e re: {{ new_eta }}"
+    }
+  },
+  {
+    "model": "notifications.notificationtemplate",
+    "pk": 4,
+    "fields": {
+      "notification_type": 4,
+      "subject_template": "Ndryshim statusi për dërgesën #{{ dispatch_id }}",
+      "email_template": "Përshëndetje,\n\nStatusi i dërgesës #{{ dispatch_id }} për stacionin {{ station_name }} është ndryshuar në {{ new_status }}.\n\n{% if notes %}Shënime: {{ notes }}{% endif %}\n\nMe respekt,\nSistemi i Menaxhimit të Dërgesave",
+      "sms_template": "NJOFTIM: Dërgesa #{{ dispatch_id }} tani është {{ new_status }}"
+    }
+  },
+  {
+    "model": "notifications.notificationtemplate",
+    "pk": 5,
+    "fields": {
+      "notification_type": 5,
+      "subject_template": "{{ subject }}",
+      "email_template": "Përshëndetje,\n\n{{ message }}\n\nMe respekt,\nSistemi i Menaxhimit të Karburantit",
+      "sms_template": "NJOFTIM: {{ subject }}"
+    }
+  }
+]

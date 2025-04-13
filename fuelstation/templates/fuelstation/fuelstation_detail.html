@@ -90,9 +90,21 @@
                             {% for dispatch in dispatches %}
                             <tr>
                                 <td>{{ dispatch.dispatch_date }}</td>
-                                <td>{{ dispatch.vehicle }}</td>
-                                <td>{{ dispatch.driver }}</td>
-                                <td>{{ dispatch.get_status_display }}</td>
+                                <td>{{ dispatch.vehicle_license_plate }}</td>
+                                <td>{% if dispatch.driver %}{{ dispatch.driver.get_full_name }}{% else %}Not Assigned{% endif %}</td>
+                                <td>
+                                    {% if dispatch.status == 'PLANNED' %}
+                                        Planned
+                                    {% elif dispatch.status == 'IN_PROGRESS' %}
+                                        In Progress
+                                    {% elif dispatch.status == 'COMPLETED' %}
+                                        Completed
+                                    {% elif dispatch.status == 'CANCELLED' %}
+                                        Cancelled
+                                    {% else %}
+                                        {{ dispatch.status }}
+                                    {% endif %}
+                                </td>
                                 <td>
                                     <a href="{% url 'dispatch:dispatch_detail' dispatch.id %}" class="btn btn-sm btn-info">
                                         View

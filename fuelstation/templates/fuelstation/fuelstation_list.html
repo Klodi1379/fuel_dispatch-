@@ -40,7 +40,7 @@
                             <td>{{ station.name }}</td>
                             <td>{{ station.address }}</td>
                             <td>{{ station.location }}</td>
-                            <td>{{ station.fuel_tanks.count }}</td>
+                            <td>{{ station.tank_count }}</td>
                             <td>
                                 <a href="{% url 'fuelstation:fuelstation_detail' station.id %}" class="btn btn-sm btn-info">
                                     <i class="bi bi-eye"></i>

@@ -7,98 +7,98 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Sistemi i Menaxhimit të Kamionëve dhe Dispečimit">
     <title>{% block title %}Truck Dispatcher{% endblock %}</title>
-    
+
     <!-- Favicon -->
     <link rel="icon" href="{% static 'img/favicon.png' %}" type="image/png">
-    
+
     <!-- Google Fonts -->
     <link href="https://fonts.gstatic.com" rel="preconnect">
     <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Nunito:300,300i,400,400i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
-    
+
     <!-- Vendor CSS Files -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    
+
     <!-- Template Main CSS File -->
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    
+
     <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@1.9.2"></script>
-    
+
     <!-- Additional CSS -->
     {% block extra_css %}{% endblock %}
-    
+
     <style>
         /* Stilime shtesë për përmirësime specifike */
         .main-logo {
             max-height: 40px;
             margin-right: 10px;
         }
-        
+
         .dashboard-card {
             border-radius: 10px;
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
             transition: all 0.3s ease;
         }
-        
+
         .dashboard-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
         }
-        
+
         .actions-dropdown .dropdown-item {
             padding: 8px 15px;
             display: flex;
             align-items: center;
         }
-        
+
         .actions-dropdown .dropdown-item i {
             margin-right: 8px;
             font-size: 16px;
         }
-        
+
         .alert-dismissible {
             padding-right: 3rem;
         }
-        
+
         /* Përmirësimet e formave */
         .form-control:focus {
             border-color: #4154f1;
             box-shadow: 0 0 0 0.2rem rgba(65, 84, 241, 0.25);
         }
-        
+
         .btn-primary {
             background-color: #4154f1;
             border-color: #4154f1;
         }
-        
+
         .btn-primary:hover {
             background-color: #3545c5;
             border-color: #3545c5;
         }
-        
+
         /* Badge statusi me ngjyra */
         .badge-planned { background-color: #2c7be5; }
         .badge-in-progress { background-color: #f5803e; }
         .badge-completed { background-color: #27ae60; }
         .badge-cancelled { background-color: #e74c3c; }
-        
+
         /* Stilime për tabelat e të dhënave */
         .data-table {
             font-size: 14px;
         }
-        
+
         .data-table th {
             font-weight: 600;
             background-color: #f8f9fa;
             border-bottom: 2px solid #dee2e6;
         }
-        
+
         .data-table td {
             vertical-align: middle;
         }
-        
+
         .data-table tr:hover {
             background-color: #f8f9fd;
         }
@@ -307,23 +307,59 @@
             </li>
 
             <li class="nav-item">
-                <a class="nav-link collapsed" data-bs-target="#reports-nav" data-bs-toggle="collapse" href="#">
-                    <i class="bi bi-bar-chart"></i><span>Raportet</span><i class="bi bi-chevron-down ms-auto"></i>
+                <a class="nav-link collapsed" data-bs-target="#tracking-nav" data-bs-toggle="collapse" href="#">
+                    <i class="bi bi-geo-alt"></i><span>Gjurmimi</span><i class="bi bi-chevron-down ms-auto"></i>
                 </a>
-                <ul id="reports-nav" class="nav-content collapse" data-bs-parent="#sidebar-nav">
+                <ul id="tracking-nav" class="nav-content collapse {% if 'tracking' in request.path %}show{% endif %}" data-bs-parent="#sidebar-nav">
                     <li>
-                        <a href="#">
-                            <i class="bi bi-circle"></i><span>Raporti i Flotës</span>
+                        <a href="{% url 'tracking:dashboard' %}" class="{% if 'tracking' in request.path %}active{% endif %}">
+                            <i class="bi bi-circle"></i><span>Gjurmimi në Kohë Reale</span>
+                        </a>
+                    </li>
+                </ul>
+            </li><!-- End Tracking Nav -->
+
+            <li class="nav-item">
+                <a class="nav-link collapsed" data-bs-target="#notifications-nav" data-bs-toggle="collapse" href="#">
+                    <i class="bi bi-bell"></i><span>Njoftimet</span><i class="bi bi-chevron-down ms-auto"></i>
+                </a>
+                <ul id="notifications-nav" class="nav-content collapse {% if 'notifications' in request.path %}show{% endif %}" data-bs-parent="#sidebar-nav">
+                    <li>
+                        <a href="{% url 'notifications:list' %}" class="{% if 'notifications' in request.path and not 'settings' in request.path %}active{% endif %}">
+                            <i class="bi bi-circle"></i><span>Lista e Njoftimeve</span>
                         </a>
                     </li>
                     <li>
-                        <a href="#">
-                            <i class="bi bi-circle"></i><span>Raporti i Dispečëve</span>
+                        <a href="{% url 'notifications:settings' %}" class="{% if 'notifications/settings' in request.path %}active{% endif %}">
+                            <i class="bi bi-circle"></i><span>Konfigurimet</span>
+                        </a>
+                    </li>
+                </ul>
+            </li><!-- End Notifications Nav -->
+
+            <li class="nav-item">
+                <a class="nav-link collapsed" data-bs-target="#reports-nav" data-bs-toggle="collapse" href="#">
+                    <i class="bi bi-bar-chart"></i><span>Analitikë</span><i class="bi bi-chevron-down ms-auto"></i>
+                </a>
+                <ul id="reports-nav" class="nav-content collapse {% if 'analytics' in request.path %}show{% endif %}" data-bs-parent="#sidebar-nav">
+                    <li>
+                        <a href="{% url 'analytics:reports' %}" class="{% if 'analytics/reports' in request.path %}active{% endif %}">
+                            <i class="bi bi-circle"></i><span>Raportet e Ruajtura</span>
                         </a>
                     </li>
                     <li>
-                        <a href="#">
-                            <i class="bi bi-circle"></i><span>Raporti i Karburanteve</span>
+                        <a href="{% url 'analytics:fuel_consumption' %}" class="{% if 'analytics/fuel-consumption' in request.path %}active{% endif %}">
+                            <i class="bi bi-circle"></i><span>Konsumi i Karburantit</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'analytics:delivery_efficiency' %}" class="{% if 'analytics/delivery-efficiency' in request.path %}active{% endif %}">
+                            <i class="bi bi-circle"></i><span>Efiçenca e Dërgesave</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'analytics:fuel_prediction' %}" class="{% if 'analytics/fuel-prediction' in request.path %}active{% endif %}">
+                            <i class="bi bi-circle"></i><span>Parashikimi i Nevojave</span>
                         </a>
                     </li>
                 </ul>
@@ -385,7 +421,7 @@
         document.addEventListener("DOMContentLoaded", function() {
             // Viti aktual për footer
             document.getElementById('current-year').innerText = new Date().getFullYear();
-            
+
             // Toggle sidebar
             const toggleSidebar = document.querySelector('.toggle-sidebar-btn');
             if (toggleSidebar) {
@@ -393,7 +429,7 @@
                     document.querySelector('body').classList.toggle('toggle-sidebar');
                 });
             }
-            
+
             // Menaxhimi i search bar në mobile
             const searchBarToggler = document.querySelector('.search-bar-toggle');
             if (searchBarToggler) {
@@ -401,13 +437,13 @@
                     document.querySelector('.search-bar').classList.toggle('search-bar-show');
                 });
             }
-            
+
             // Aktivizo tooltips
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
             var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
                 return new bootstrap.Tooltip(tooltipTriggerEl)
             });
-            
+
             // Zhdukja automatike e njoftimeve
             var alertList = document.querySelectorAll('.alert');
             alertList.forEach(function(alert) {

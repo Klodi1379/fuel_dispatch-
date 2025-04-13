@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+
+{% block title %}Raporti i Efiçencës së Dërgesave{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Raporti i Efiçencës së Dërgesave</h1>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Filtrat e Raportit</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label for="start_date" class="form-label">Data e fillimit</label>
+                    <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}">
+                </div>
+                <div class="col-md-4">
+                    <label for="end_date" class="form-label">Data e përfundimit</label>
+                    <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}">
+                </div>
+                <div class="col-12">
+                    <button type="submit" name="generate" class="btn btn-primary">Gjenero Raportin</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if report_data %}
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5>Rezultatet e Raportit</h5>
+            <div>
+                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#saveReportModal">
+                    <i class="bi bi-save"></i> Ruaj Raportin
+                </button>
+                <button type="button" class="btn btn-outline-secondary ms-2" onclick="window.print()">
+                    <i class="bi bi-printer"></i> Printo
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if report_data.chart_config %}
+            <div class="mb-4">
+                <h6>Grafiku i Efiçencës së Dërgesave</h6>
+                <img src="data:image/png;base64,{{ report_data.chart_config.image_base64 }}" class="img-fluid" alt="Grafiku i efiçencës">
+            </div>
+            {% endif %}
+
+            {% if report_data.data %}
+            <h6>Të dhënat e detajuara</h6>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Dërgesa Totale</th>
+                            <th>Përfunduar në Kohë</th>
+                            <th>Përqindja në Kohë</th>
+                            <th>Dërgesa të Vonuara</th>
+                            <th>Dërgesa të Anuluara</th>
+                            <th>Koha Mesatare (min)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in report_data.data %}
+                        <tr>
+                            <td>{{ item.date }}</td>
+                            <td>{{ item.total_dispatches }}</td>
+                            <td>{{ item.completed_on_time }}</td>
+                            <td>{{ item.on_time_percentage }}%</td>
+                            <td>{{ item.delayed_deliveries }}</td>
+                            <td>{{ item.cancelled_deliveries }}</td>
+                            <td>{{ item.average_dispatch_time }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6>Përmbledhje e Performancës</h6>
+                        </div>
+                        <div class="card-body">
+                            {% with data=report_data.data %}
+                            {% with total_dispatches=0 total_on_time=0 total_delayed=0 total_cancelled=0 %}
+                            {% for item in data %}
+                                {% with total_dispatches=total_dispatches|add:item.total_dispatches %}
+                                {% with total_on_time=total_on_time|add:item.completed_on_time %}
+                                {% with total_delayed=total_delayed|add:item.delayed_deliveries %}
+                                {% with total_cancelled=total_cancelled|add:item.cancelled_deliveries %}
+                                {% endwith %}
+                                {% endwith %}
+                                {% endwith %}
+                                {% endwith %}
+                            {% endfor %}
+
+                            <div class="mb-3">
+                                <strong>Dërgesa Totale:</strong> {{ total_dispatches }}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Përfunduar në Kohë:</strong> {{ total_on_time }}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Dërgesa të Vonuara:</strong> {{ total_delayed }}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Dërgesa të Anuluara:</strong> {{ total_cancelled }}
+                            </div>
+                            {% endwith %}
+                            {% endwith %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6>Koha Mesatare e Dërgesave</h6>
+                        </div>
+                        <div class="card-body">
+                            {% with data=report_data.data %}
+                            {% with total_time=0 count=0 %}
+                            {% for item in data %}
+                                {% with total_time=total_time|add:item.average_dispatch_time %}
+                                {% with count=count|add:1 %}
+                                {% endwith %}
+                                {% endwith %}
+                            {% endfor %}
+
+                            <div class="mb-3">
+                                <strong>Koha Mesatare e Përgjithshme:</strong> {{ report_data.avg_time }} minuta
+                            </div>
+                            <div class="mb-3">
+                                <strong>Koha Maksimale:</strong> {{ report_data.max_time }} minuta
+                            </div>
+                            <div class="mb-3">
+                                <strong>Koha Minimale:</strong> {{ report_data.min_time }} minuta
+                            </div>
+                            {% endwith %}
+                            {% endwith %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-info">Nuk u gjetën të dhëna për kriteret e zgjedhura.</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Modal për ruajtjen e raportit -->
+    <div class="modal fade" id="saveReportModal" tabindex="-1" aria-labelledby="saveReportModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="get">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="saveReportModalLabel">Ruaj Raportin</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="report_title" class="form-label">Titulli i Raportit</label>
+                            <input type="text" class="form-control" id="report_title" name="report_title"
+                                   value="Efiçenca e Dërgesave {{ start_date }} deri {{ end_date }}">
+                        </div>
+
+                        <!-- Ruaj filtrat e përdorur -->
+                        <input type="hidden" name="start_date" value="{{ start_date }}">
+                        <input type="hidden" name="end_date" value="{{ end_date }}">
+                        <input type="hidden" name="generate" value="1">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anulo</button>
+                        <button type="submit" name="save_report" class="btn btn-primary">Ruaj</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
