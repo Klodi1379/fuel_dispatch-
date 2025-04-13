@@ -1,0 +1,61 @@
+# Git
+.git
+.gitignore
+
+# Docker
+.docker
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local development settings
+local_settings.py
+
+# Database
+*.sqlite3
+*.db
+
+# Media and static files (if served externally)
+# /media/
+# /static/
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/

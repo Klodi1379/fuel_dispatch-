@@ -1,0 +1,21 @@
+services:
+  # Django web application
+  web:
+    build: .
+    restart: always
+    volumes:
+      - .:/app
+      - static_volume:/app/static
+      - media_volume:/app/media
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DJANGO_ENV=development
+      - APPLY_MIGRATIONS=true
+
+volumes:
+  static_volume:
+  media_volume:
+
