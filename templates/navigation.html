@@ -1,0 +1,327 @@
+{% load static %}
+
+<!-- HORIZONTAL NAVBAR -->
+<header class="horizontal-navbar">
+    <div class="container-fluid">
+        <div class="horizontal-navbar-container">
+            <!-- Logo -->
+            <div class="logo-container">
+                <a href="{% url 'dashboard' %}" class="logo">
+                    <img src="{% static 'img/logo.png' %}" alt="Logo" class="main-logo">
+                    <span class="logo-text">Truck Dispatcher</span>
+                </a>
+                <button class="mobile-toggle-btn" id="mobile-toggle">
+                    <i class="bi bi-list"></i>
+                </button>
+            </div>
+
+            <!-- Horizontal Menu -->
+            <nav class="horizontal-menu">
+                <ul class="nav-list">
+                    <li class="nav-item {% if request.path == '/' %}active{% endif %}">
+                        <a href="{% url 'dashboard' %}" class="nav-link">
+                            <i class="bi bi-grid"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    
+                    <!-- Fleet Management Group -->
+                    <li class="nav-item dropdown">
+                        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="bi bi-truck"></i>
+                            <span>Fleet</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="{% url 'truck:vehicle_list' %}" class="dropdown-item">
+                                    <i class="bi bi-truck"></i>
+                                    <span>Trucks</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'tracking:dashboard' %}" class="dropdown-item">
+                                    <i class="bi bi-geo-alt"></i>
+                                    <span>Tracking</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    
+                    <!-- Operations Group -->
+                    <li class="nav-item dropdown">
+                        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="bi bi-gear"></i>
+                            <span>Operations</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="{% url 'dispatch:dispatch_list' %}" class="dropdown-item">
+                                    <i class="bi bi-send"></i>
+                                    <span>Dispatches</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'fuelstation:fuelstation_list' %}" class="dropdown-item">
+                                    <i class="bi bi-fuel-pump"></i>
+                                    <span>Stations</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    
+                    {% if request.user.is_staff %}
+                    <!-- Analytics Group -->
+                    <li class="nav-item dropdown">
+                        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="bi bi-bar-chart"></i>
+                            <span>Analytics</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="{% url 'analytics:reports' %}" class="dropdown-item">
+                                    <i class="bi bi-file-earmark-text"></i>
+                                    <span>Reports</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'analytics:fuel_consumption' %}" class="dropdown-item">
+                                    <i class="bi bi-droplet"></i>
+                                    <span>Fuel Consumption</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'analytics:delivery_efficiency' %}" class="dropdown-item">
+                                    <i class="bi bi-graph-up"></i>
+                                    <span>Delivery Efficiency</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'analytics:fuel_prediction' %}" class="dropdown-item">
+                                    <i class="bi bi-lightning"></i>
+                                    <span>Predictions</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    
+                    <!-- Admin Group -->
+                    <li class="nav-item dropdown">
+                        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="bi bi-shield"></i>
+                            <span>Admin</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="{% url 'admin:index' %}" class="dropdown-item">
+                                    <i class="bi bi-gear"></i>
+                                    <span>Admin Panel</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'notifications:list' %}" class="dropdown-item">
+                                    <i class="bi bi-bell"></i>
+                                    <span>Notifications</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'notifications:settings' %}" class="dropdown-item">
+                                    <i class="bi bi-sliders"></i>
+                                    <span>Notification Settings</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+
+            <!-- Right Menu -->
+            <div class="right-menu">
+                <!-- Search -->
+                <div class="search-container">
+                    <form class="search-form" method="GET" action="{% block search_url %}{% url 'dashboard' %}{% endblock %}">
+                        <input type="text" name="search" placeholder="Search..." value="{{ request.GET.search|default:'' }}">
+                        <button type="submit"><i class="bi bi-search"></i></button>
+                    </form>
+                </div>
+
+                <!-- Notifications -->
+                <div class="nav-item dropdown">
+                    <a class="nav-link" href="#" data-bs-toggle="dropdown">
+                        <i class="bi bi-bell"></i>
+                        <span class="badge">4</span>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end notifications-dropdown">
+                        <div class="dropdown-header">
+                            <h6>Notifications</h6>
+                            <a href="#">View all</a>
+                        </div>
+                        <div class="notifications-list">
+                            <a href="#" class="notification-item">
+                                <div class="icon warning">
+                                    <i class="bi bi-exclamation-circle"></i>
+                                </div>
+                                <div class="content">
+                                    <h4>Scheduled Maintenance</h4>
+                                    <p>Truck KS-123-AA has upcoming maintenance</p>
+                                    <span class="time">30 min ago</span>
+                                </div>
+                            </a>
+                            <a href="#" class="notification-item">
+                                <div class="icon success">
+                                    <i class="bi bi-check-circle"></i>
+                                </div>
+                                <div class="content">
+                                    <h4>Dispatch Completed</h4>
+                                    <p>Truck TR-456-BB completed delivery</p>
+                                    <span class="time">1 hour ago</span>
+                                </div>
+                            </a>
+                            <a href="#" class="notification-item">
+                                <div class="icon info">
+                                    <i class="bi bi-info-circle"></i>
+                                </div>
+                                <div class="content">
+                                    <h4>Assigned to Dispatch</h4>
+                                    <p>You have been assigned as driver</p>
+                                    <span class="time">4 hours ago</span>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="dropdown-footer">
+                            <a href="{% url 'notifications:list' %}">View all notifications</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User Profile -->
+                <div class="nav-item dropdown">
+                    <a class="nav-link profile-link" href="#" data-bs-toggle="dropdown">
+                        <img src="{% static 'img/profile-img.jpg' %}" alt="Profile" class="profile-img">
+                        <span class="profile-name">{{ request.user.get_full_name|default:request.user.username }}</span>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end profile-dropdown">
+                        <div class="dropdown-header">
+                            <h6>{{ request.user.get_full_name|default:request.user.username }}</h6>
+                            <span>{% if request.user.profile.role %}{{ request.user.profile.get_role_display }}{% else %}User{% endif %}</span>
+                        </div>
+                        <a href="#" class="dropdown-item">
+                            <i class="bi bi-person"></i>
+                            <span>My Profile</span>
+                        </a>
+                        <a href="#" class="dropdown-item">
+                            <i class="bi bi-gear"></i>
+                            <span>Settings</span>
+                        </a>
+                        <a href="#" class="dropdown-item">
+                            <i class="bi bi-question-circle"></i>
+                            <span>Help</span>
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="{% url 'logout' %}" class="dropdown-item">
+                            <i class="bi bi-box-arrow-right"></i>
+                            <span>Logout</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Mobile Navigation Menu (shows on small screens) -->
+<div class="mobile-menu" id="mobile-menu">
+    <div class="mobile-menu-container">
+        <ul class="mobile-nav-list">
+            <li class="mobile-nav-item {% if request.path == '/' %}active{% endif %}">
+                <a href="{% url 'dashboard' %}" class="mobile-nav-link">
+                    <i class="bi bi-grid"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            
+            <li class="mobile-nav-item">
+                <a href="{% url 'truck:vehicle_list' %}" class="mobile-nav-link">
+                    <i class="bi bi-truck"></i>
+                    <span>Trucks</span>
+                </a>
+            </li>
+            
+            <li class="mobile-nav-item">
+                <a href="{% url 'tracking:dashboard' %}" class="mobile-nav-link">
+                    <i class="bi bi-geo-alt"></i>
+                    <span>Tracking</span>
+                </a>
+            </li>
+            
+            <li class="mobile-nav-item">
+                <a href="{% url 'dispatch:dispatch_list' %}" class="mobile-nav-link">
+                    <i class="bi bi-send"></i>
+                    <span>Dispatches</span>
+                </a>
+            </li>
+            
+            <li class="mobile-nav-item">
+                <a href="{% url 'fuelstation:fuelstation_list' %}" class="mobile-nav-link">
+                    <i class="bi bi-fuel-pump"></i>
+                    <span>Stations</span>
+                </a>
+            </li>
+            
+            {% if request.user.is_staff %}
+            <li class="mobile-nav-section">Analytics</li>
+            
+            <li class="mobile-nav-item">
+                <a href="{% url 'analytics:reports' %}" class="mobile-nav-link">
+                    <i class="bi bi-file-earmark-text"></i>
+                    <span>Reports</span>
+                </a>
+            </li>
+            
+            <li class="mobile-nav-item">
+                <a href="{% url 'analytics:fuel_consumption' %}" class="mobile-nav-link">
+                    <i class="bi bi-droplet"></i>
+                    <span>Fuel Consumption</span>
+                </a>
+            </li>
+            
+            <li class="mobile-nav-item">
+                <a href="{% url 'analytics:delivery_efficiency' %}" class="mobile-nav-link">
+                    <i class="bi bi-graph-up"></i>
+                    <span>Delivery Efficiency</span>
+                </a>
+            </li>
+            
+            <li class="mobile-nav-item">
+                <a href="{% url 'analytics:fuel_prediction' %}" class="mobile-nav-link">
+                    <i class="bi bi-lightning"></i>
+                    <span>Predictions</span>
+                </a>
+            </li>
+            
+            <li class="mobile-nav-section">Administration</li>
+            
+            <li class="mobile-nav-item">
+                <a href="{% url 'admin:index' %}" class="mobile-nav-link">
+                    <i class="bi bi-gear"></i>
+                    <span>Admin Panel</span>
+                </a>
+            </li>
+            
+            <li class="mobile-nav-item">
+                <a href="{% url 'notifications:list' %}" class="mobile-nav-link">
+                    <i class="bi bi-bell"></i>
+                    <span>Notifications</span>
+                </a>
+            </li>
+            
+            <li class="mobile-nav-item">
+                <a href="{% url 'notifications:settings' %}" class="mobile-nav-link">
+                    <i class="bi bi-sliders"></i>
+                    <span>Notification Settings</span>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </div>
+</div>

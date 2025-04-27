@@ -228,7 +228,7 @@
     const map = L.map('vehicle-map').setView([41.3275, 19.8187], 8); // Center on Albania
 
     // Check if a specific vehicle is selected
-    const selectedVehicleId = {{ selected_vehicle_id|default:'null' }};
+    const initialSelectedVehicleId = {{ selected_vehicle_id|default:'null' }};
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -238,7 +238,10 @@
     // Vehicle markers and data
     const vehicles = {};
     const markers = {};
-    let selectedVehicleId = null;
+    let selectedVehicleId = initialSelectedVehicleId;
+
+    // Initialize with vehicle locations from server
+    const initialVehicleLocations = {{ vehicle_locations|safe|default:'{}' }};
 
     // Sample data for demonstration (will be replaced with real API data)
     const sampleData = [
@@ -350,7 +353,7 @@
             `,
             className: 'vehicle-map-icon',
             iconSize: [40, 40],
-            iconAnchor: [20, 20]
+            iconAnchor: [20, 40] // Changed from [20, 20] to [20, 40] to position the icon correctly
         });
     }
 
@@ -383,7 +386,12 @@
             map.removeLayer(markers[vehicle.id]);
         }
 
-        const marker = L.marker([vehicle.latitude, vehicle.longitude], {
+        // Ensure latitude and longitude are numbers, not strings
+        const lat = parseFloat(vehicle.latitude);
+        const lng = parseFloat(vehicle.longitude);
+
+        // Create marker with proper coordinates
+        const marker = L.marker([lat, lng], {
             icon: createVehicleIcon(vehicle)
         }).addTo(map);
 
@@ -516,16 +524,79 @@
 
             // Center map on selected vehicle
             if (markers[vehicleId]) {
-                map.setView([vehicles[vehicleId].latitude, vehicles[vehicleId].longitude], 12);
+                const lat = parseFloat(vehicles[vehicleId].latitude);
+                const lng = parseFloat(vehicles[vehicleId].longitude);
+                map.setView([lat, lng], 12);
                 markers[vehicleId].openPopup();
             }
         }
     }
 
+    // Initialize with data from server
+    function initializeVehicleData() {
+        console.log('Initializing with vehicle data:', initialVehicleLocations);
+
+        // Process initial vehicle locations
+        if (initialVehicleLocations && Object.keys(initialVehicleLocations).length > 0) {
+            Object.values(initialVehicleLocations).forEach(location => {
+                const vehicle = {
+                    id: location.vehicle,
+                    license_plate: location.vehicle_license_plate || 'Unknown',
+                    latitude: location.latitude,
+                    longitude: location.longitude,
+                    speed: location.speed || 0,
+                    timestamp: location.timestamp,
+                    status: location.speed > 0 ? 'online' : 'idle',
+                    location: 'Albania' // This would ideally come from geocoding
+                };
+                updateVehicleUI(vehicle);
+            });
+
+            // If we have vehicles, fit the map to show all of them
+            fitMapToVehicles();
+        } else {
+            console.log('No initial vehicle data, using sample data');
+            useSampleData();
+        }
+    }
+
     // Fetch vehicle data from API
     function fetchVehicleData() {
-        // In a real application, this would be an API call
-        // For demonstration, we'll use the sample data
+        // Try to fetch real data from the API
+        fetch('/tracking/api/locations/latest/')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // If we have real data, use it
+                if (data && data.length > 0) {
+                    data.forEach(location => {
+                        const vehicle = {
+                            id: location.vehicle,
+                            license_plate: location.vehicle_license_plate || 'Unknown',
+                            latitude: location.latitude,
+                            longitude: location.longitude,
+                            speed: location.speed || 0,
+                            timestamp: location.timestamp,
+                            status: location.speed > 0 ? 'online' : 'idle',
+                            location: 'Albania' // This would ideally come from geocoding
+                        };
+                        updateVehicleUI(vehicle);
+                    });
+                } else {
+                    console.log('API returned no data');
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching vehicle data:', error);
+            });
+    }
+
+    // Use sample data as fallback
+    function useSampleData() {
         sampleData.forEach(vehicle => {
             // Add some randomness to make it look like real-time updates
             if (vehicle.status !== 'offline') {
@@ -563,7 +634,9 @@
         const bounds = [];
         Object.values(vehicles).forEach(vehicle => {
             if (vehicle.status !== 'offline') {
-                bounds.push([vehicle.latitude, vehicle.longitude]);
+                const lat = parseFloat(vehicle.latitude);
+                const lng = parseFloat(vehicle.longitude);
+                bounds.push([lat, lng]);
             }
         });
 
@@ -575,13 +648,24 @@
     });
 
     // Refresh data button
-    document.getElementById('refresh-data').addEventListener('click', fetchVehicleData);
+    document.getElementById('refresh-data').addEventListener('click', function() {
+        // First try to fetch new data from API
+        fetchVehicleData();
+
+        // If that fails, use the initial data
+        setTimeout(() => {
+            if (Object.keys(vehicles).length === 0) {
+                console.log('No vehicles loaded from API, using initial data');
+                initializeVehicleData();
+            }
+        }, 1000);
+    });
 
     // Make selectVehicle function available globally
     window.selectVehicle = selectVehicle;
 
-    // Initial data fetch
-    fetchVehicleData();
+    // Initial data load from server
+    initializeVehicleData();
 
     // If a specific vehicle is selected, focus on it after data is loaded
     if (selectedVehicleId) {

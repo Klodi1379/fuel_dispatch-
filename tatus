@@ -1,0 +1,12 @@
+* [33md3ef76a[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m)[m somme changes to template
+* [33m5d18749[m somme changes to template
+[31m|[m * [33mf00349a[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Dockerfile
+[31m|[m * [33m7fa3caf[m added new models
+[31m|[m[31m/[m  
+* [33mc322efc[m Add timestamps to FuelStation model and implement CRUD views
+* [33m8f790e8[m Update README.md
+*   [33me1cdb92[m Merge remote-tracking branch 'origin/main'
+[33m|[m[34m\[m  
+[33m|[m * [33macb0486[m Initial commit
+* [33m709ff7c[m[33m ([m[1;31morigin/master[m[33m)[m Initial requirements
+* [33m4e215b6[m Initial commit

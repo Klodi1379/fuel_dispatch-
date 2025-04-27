@@ -6,6 +6,15 @@ from rest_framework.decorators import action
 from .models import VehicleLocation, Route
 from .serializers import VehicleLocationSerializer, RouteSerializer
 from truck.models import Vehicle
+import json
+from decimal import Decimal
+
+# Custom JSON encoder to handle Decimal objects
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super(DecimalEncoder, self).default(obj)
 
 @login_required
 def tracking_dashboard(request):
@@ -22,20 +31,25 @@ def tracking_dashboard(request):
     active_vehicles = Vehicle.objects.filter(is_active=True)
 
     # Get the latest location for each vehicle
-    vehicle_locations = {}
+    latest_locations = []
     for vehicle in active_vehicles:
         location = VehicleLocation.objects.filter(vehicle=vehicle).order_by('-timestamp').first()
         if location:
-            vehicle_locations[vehicle.id] = {
-                'latitude': location.latitude,
-                'longitude': location.longitude,
-                'timestamp': location.timestamp,
-                'speed': location.speed
-            }
+            latest_locations.append(location)
+
+    # Serialize the locations for JavaScript
+    serializer = VehicleLocationSerializer(latest_locations, many=True)
+    import json
+
+    # Create a dictionary for easy lookup in JavaScript
+    vehicle_locations_dict = {}
+    for location in serializer.data:
+        vehicle_id = location['vehicle']
+        vehicle_locations_dict[vehicle_id] = location
 
     context = {
         'vehicles': active_vehicles,
-        'vehicle_locations': vehicle_locations,
+        'vehicle_locations': json.dumps(vehicle_locations_dict, cls=DecimalEncoder),
         'selected_vehicle_id': selected_vehicle_id,
         'page_title': 'Real-Time Vehicle Tracking'
     }

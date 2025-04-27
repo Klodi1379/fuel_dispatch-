@@ -4,11 +4,19 @@ from django.db.models import Count, Sum, Q, Avg
 from django.utils import timezone
 import json
 from datetime import timedelta
+from decimal import Decimal
 from truck.models import Vehicle
 from fuelstation.models import FuelStation, FuelTank
 from dispatch.models import Dispatch
 from tracking.models import VehicleLocation
 from notifications.models import Notification
+
+# Custom JSON encoder to handle Decimal objects
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super(DecimalEncoder, self).default(obj)
 
 @login_required
 def dashboard(request):
@@ -177,10 +185,10 @@ def dashboard(request):
         'today_dispatches': today_dispatches,
 
         # Chart data
-        'dispatch_chart_data': json.dumps(dispatch_chart_data),
+        'dispatch_chart_data': json.dumps(dispatch_chart_data, cls=DecimalEncoder),
 
         # Map data
-        'map_data': json.dumps(map_data),
+        'map_data': json.dumps(map_data, cls=DecimalEncoder),
 
         # Notifications
         'recent_notifications': recent_notifications,
